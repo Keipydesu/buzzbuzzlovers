@@ -60,4 +60,37 @@ class Snapshots::IngestTest < ActiveSupport::TestCase
     assert_equal :accepted, result.disposition
     assert_equal 60, result.session.tracked_seconds
   end
+
+  test "an accepted first insert writes exactly one history row with the session's own receipt timestamp" do
+    device = Device.register(DEVICE_ID).device
+
+    result = build_ingest(device, 7).call
+
+    assert_equal 1, PostureSnapshot.where(posture_session_id: result.session.id).count
+    snapshot = PostureSnapshot.find_by!(posture_session_id: result.session.id, sequence: 12)
+    assert_equal result.session.first_received_at.to_i, snapshot.received_at.to_i
+    assert_equal 60, snapshot.tracked_seconds
+  end
+
+  test "an accepted later revision writes another history row, not a rewrite of the first" do
+    device = Device.register(DEVICE_ID).device
+    build_ingest(device, 7).call
+    result = build_ingest(device, 7, sequence: 13, tracked_seconds: 90, slouch_seconds: 20).call
+
+    assert_equal :accepted, result.disposition
+    assert_equal 2, PostureSnapshot.where(posture_session_id: result.session.id).count
+    assert PostureSnapshot.exists?(posture_session_id: result.session.id, sequence: 12, tracked_seconds: 60)
+    assert PostureSnapshot.exists?(posture_session_id: result.session.id, sequence: 13, tracked_seconds: 90)
+  end
+
+  test "stale, duplicate, and conflicting requests never write history rows" do
+    device = Device.register(DEVICE_ID).device
+    build_ingest(device, 7).call
+
+    build_ingest(device, 7, sequence: 5).call # stale
+    build_ingest(device, 7).call # duplicate
+    build_ingest(device, 7, tracked_seconds: 999).call # conflict
+
+    assert_equal 1, PostureSnapshot.where(posture_session_id: PostureSession.find_by!(device: device, device_session_id: 7).id).count
+  end
 end

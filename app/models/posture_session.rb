@@ -1,5 +1,6 @@
 class PostureSession < ApplicationRecord
   belongs_to :device, inverse_of: :posture_sessions
+  has_many :posture_snapshots, inverse_of: :posture_session
 
   STATES = %w[idle calibrating upright slouching sensor_error ended].freeze
   UINT32_MAX = 4_294_967_295
