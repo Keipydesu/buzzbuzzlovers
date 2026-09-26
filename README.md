@@ -37,7 +37,7 @@ Rails: session storage, daily summaries, weekly history, rewards
 
 The BLE link is local. Whether Rails is hosted online or runs locally is still undecided; local Bluetooth does not by itself make the entire app offline.
 
-Read [the MVP plan](docs/MVP.md) for scope, the demo flow, proposed workstreams, and open decisions.
+Read [the MVP plan](docs/MVP.md) for scope, the demo flow, proposed workstreams, and open decisions. Read [the roadmap](docs/ROADMAP.md) for how that scope sequences into phases.
 
 ## Development
 
