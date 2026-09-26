@@ -23,6 +23,7 @@ Rails.application.routes.draw do
   end
   get "coach", to: "coach#show", as: :coach
   post "coach", to: "coach#create"
+  delete "coach", to: "coach#reset"
 
   namespace :api do
     namespace :v1 do

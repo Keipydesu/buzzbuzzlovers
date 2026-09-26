@@ -6,15 +6,27 @@
     <div class="group-heading"><p class="eyebrow">SMALL ADJUSTMENTS. BETTER HABITS.</p><h1>Ask Muse</h1><p>Practical help for your desk, chair, and daily routine.</p></div>
     <section class="panel muse-conversation" aria-label="Ergonomics help">
       <% if @error %><p class="coach-error" role="alert"><%= @error %></p><% end %>
-      <% if @answer %><div class="muse-answer"><h2>Muse</h2><%= simple_format(@answer) %></div><% end %>
+      <% if @history.present? %>
+        <div class="muse-thread">
+          <% @history.each do |turn| %>
+            <div class="muse-turn muse-turn-<%= turn[:role] %>">
+              <h2><%= turn[:role] == "assistant" ? "Muse" : "You" %></h2>
+              <%= simple_format(turn[:content]) %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
       <%= form_with url: coach_path, method: :post, data: { turbo: false } do |form| %>
-        <%= form.label :question, "What would you like to work on?" %>
+        <%= form.label :question, @history.present? ? "Continue the conversation" : "What would you like to work on?" %>
         <%= form.text_area :question, value: @question, required: true, maxlength: 2000, rows: 5, placeholder: "I keep leaning toward my laptop. What could I change about my desk setup?" %>
-        <p class="coach-sharing">Your question is sent to Meta Muse Spark. Your tracking history and group data are not included.</p>
+        <p class="coach-sharing">Your question, this conversation, and a short summary of your own tracked totals (today and the last 7 days) are sent to Meta Muse Spark. Your group data, images, and raw sensor data are not included.</p>
         <% unless Muse::Coach.configured? %><p class="coach-availability">Muse isn't connected yet.</p><% end %>
         <%= form.submit "Ask Muse", class: "group-create-button", disabled: !Muse::Coach.configured?, data: { disable_with: "Asking Muse…" } %>
       <% end %>
+      <% if @history.present? %>
+        <%= button_to "Start a new conversation", coach_path, method: :delete, class: "coach-reset-button", form: { data: { turbo: false } } %>
+      <% end %>
     </section>
-    <p class="coach-footnote">General ergonomics guidance, not a medical assessment. Each question starts a new conversation.</p>
+    <p class="coach-footnote">General ergonomics guidance, not a medical assessment.</p>
   </main>
 </div>
