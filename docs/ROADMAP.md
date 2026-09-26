@@ -2,6 +2,14 @@
 
 Status: draft, under active discussion. This sequences the proposals in [MVP.md](MVP.md) into phases; it does not itself finalize any open decision listed there. Update this file as decisions are confirmed.
 
+## Current status and priorities
+
+The Rails persistence/API scaffold is under review in PR #1; it is not a completed hosted release. The dependency safety policy is documented. Account isolation, browser integration, and Tiger Data storage are not implemented. Read relevant numbered records in `docs/decisions/` before planning; there is no separate decision index.
+
+Current order: resolve PR correctness findings, confirm hosted account/enrollment and infrastructure choices, implement isolated and authenticated storage with atomic snapshot history, then finish browser/dashboard integration and rehearse the demo. The phase sections below group workstreams rather than implying that every earlier item has landed.
+
+Public-release blockers: authentication and verified device ownership, tenant-scoped reads/writes, secure hosting/database connections, ingestion correctness, dependency review, and agreed retention/recovery/budget. Durable browser outbox, accurate cross-midnight history, device transfers, continuous aggregates, and columnstore optimization remain deferred unless separately approved. Follow [data-storage.md](data-storage.md) for acceptance checks.
+
 ## Guiding order
 
 BLE contract first, then firmware and app work in parallel against that contract, then integration, then demo polish. Pairing on the BLE contract early avoids rework in both directions.
@@ -16,7 +24,7 @@ Close the relevant gates before implementing each workstream. Documentation and 
 - [ ] Scope of first demo: connected-session only, or disconnected logging + resync
 - [ ] Calibration/start/end controls: physical device controls or browser commands
 - [ ] Session clock anchor, timezone, and treatment of sessions spanning midnight; cumulative totals alone do not encode calendar history
-- [ ] Rails tooling, database, hosting, and single-profile versus account-based access
+- [ ] Vetted Rails/PostgreSQL/TimescaleDB versions, Rails host, Tiger Cloud region/tier and budget, account authentication, and verified device enrollment
 - [ ] Vet selected gems and other dependencies under [the dependency safety policy](dependency-safety.md), including exact versions, provenance, independent scrutiny, advisories, and transitive dependencies before installation
 
 Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the contract. UUIDs and encoding there are proposed, not frozen. The telemetry layout can be reviewed independently of sensor thresholds; the hardware must be selected before wiring or validating detection.
@@ -47,11 +55,14 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 - [ ] Reconnect and resync behavior if disconnected logging is in scope
 - [ ] Agree on byte-level fixtures shared by firmware and browser tests before coding either side
 
-## Phase 3 — Rails and data
+## Phase 3 — Rails and hosted data
 
 *Documentation review: claude. Implementation: team owner TBD.*
 
-- [ ] Scaffold Rails app (framework choices: Hotwire/Stimulus, PostgreSQL, Tailwind — confirm before scaffolding)
+- [ ] Resolve review findings in the Rails scaffold; confirm supporting tooling and versions
+- [ ] Follow [the Tiger Data integration plan](data-storage.md): isolated development service, verified TLS, ordinary account/session tables, and accepted-snapshot hypertable
+- [ ] Implement account authorization and device enrollment before public hosting; scope all reads and writes to the current user
+- [ ] Verify atomic session/history writes, concurrency and retry idempotency, backup/restore, deletion, retention, and capacity budget before hosted pilot
 - [ ] Session persistence model keyed on `(device_id, session_id)`, storing the latest accepted `sequence` and the snapshot fields from [ble-protocol.md](ble-protocol.md), plus receipt metadata and the clock anchor/timezone selected by the calendar policy; do not equate server receipt time with the actual session start
 - [ ] Ingestion endpoint from browser-side BLE client: atomically accept an update only if `sequence` exceeds the stored value for that session and the snapshot invariants hold (`slouch_seconds <= tracked_seconds`, nondecreasing counters); ignore stale/identical updates, report conflicting equal-sequence payloads or invalid snapshots, and never add complete cumulative snapshots together
 - [ ] Reject activity for session `0` and for any session already marked ended

@@ -15,13 +15,14 @@ The wearable is responsible for sensing and calculating posture. The app is prim
 | Computation | All posture calculations run locally on the ESP32 |
 | Transfer | Bluetooth Low Energy from wearable to laptop browser |
 | Web framework | Ruby on Rails preferred |
+| Storage direction | Online user history using Tiger Data hypertables; managed-cloud integration proposed |
 | Interface | Mobile-first web app |
 | Initial demo | Laptops; no Android phone available |
 | Core measurements | Slouch episode count and total slouch duration during tracked time |
 | History | Weekly view |
 | Motivation | Gamified posture-awareness progress |
 
-No build deadline has been set. No additional framework, database, hosting provider, sensor, or detection threshold has been finalized.
+No build deadline has been set. Tiger Data integration is the chosen storage direction; service tier/region, Rails host, authentication design, supporting tools, sensor, and detection threshold remain open. See [the hosted storage plan](data-storage.md).
 
 ## Proposed first complete loop
 
@@ -53,7 +54,8 @@ Detection thresholds, persistence windows, sensor placement, and recovery behavi
 - A connect/disconnect flow with clear connection status.
 - Current posture and session status while connected; mark disconnected or stale readings explicitly.
 - Today's tracked duration, slouch duration, and episode count.
-- Weekly history drawn from saved sessions.
+- Weekly history drawn from centrally saved sessions.
+- Authenticated accounts and verified device ownership before online user data is exposed; no user-managed local database.
 - One simple daily challenge and visible progress or reward. A tracking-duration goal is a starting proposal; scoring remains open.
 - Layout usable on phones and laptops, while clearly communicating Bluetooth compatibility.
 - Useful empty states before any activity is recorded. Any example data must be labeled and kept separate from real history.
@@ -85,10 +87,10 @@ For an eventual all-day experience, the device should retain unsynced results an
 
 - **Ruby on Rails:** preferred and agreed direction for the web app.
 - **Hotwire / Stimulus:** candidate for dashboard interactions and browser-side BLE handling.
-- **PostgreSQL:** candidate for persisted session data.
+- **Tiger Data / PostgreSQL:** chosen online-storage direction; propose managed Tiger Cloud with ordinary account/session tables and an accepted-snapshot hypertable, as detailed in [data-storage.md](data-storage.md).
 - **Tailwind CSS:** candidate for interface styling.
 
-Only Rails is the user's stated preference. The remaining choices are suggestions and should be confirmed before scaffolding. Bluetooth talks to browser JavaScript, which sends results to Rails; the Rails server does not directly connect to the wearable.
+Rails and Tiger Data online storage are stated directions. Supporting tools and deployment details remain proposals; the existing scaffold does not implement hosted authentication or hypertables. Bluetooth talks to browser JavaScript, which sends results to Rails; the Rails server does not directly connect to the wearable.
 
 ## Demo acceptance criteria
 
@@ -102,6 +104,9 @@ Only Rails is the user's stated preference. The remaining choices are suggestion
 - A lost connection is visible and is not shown as live upright posture.
 - Daily and weekly summaries use recorded data, with any sample week explicitly labeled.
 - The chosen daily challenge updates from recorded activity.
+- Online users can access only their own devices and history; guessing a device ID does not grant ownership.
+- Accepted revisions update canonical sessions and append history atomically; retries create no extra history or rewards.
+- Internet or cloud-database failure leaves BLE status truthful and marks pending data unsaved.
 
 ## Suggested four-person work split
 
@@ -119,11 +124,12 @@ These are proposed workstreams, not assignments to named team members. Pair on t
 1. Which ESP32 variant, posture sensor, mounting location, and power source?
 2. Which laptop operating systems and browsers will be used for the demo?
 3. Is the first demo connected-session tracking only, or must it include disconnected logging and later synchronization?
-4. Where will Rails run, and is full offline operation required?
-5. Which supporting Rails tools, database, and styling approach should be used?
+4. Which Rails host and Tiger Cloud region/tier fit the budget, and what offline queue behavior is required? Cloud persistence needs internet access.
+5. Which vetted PostgreSQL/TimescaleDB versions, supporting Rails tools, and styling approach should be used?
 6. How do calibration and start/end-session controls work across the device and app?
 7. What daily challenge and reward should the first version use?
-8. Is a single demo profile sufficient, or are separate user accounts required?
+8. Which account-authentication and device-enrollment design will secure hosted user data? Separate ownership scopes are required online.
+9. What snapshot/session retention, deletion, backup/recovery, and capacity budget should the hosted service use?
 
 ## Outside the first proposed scope
 

@@ -1,14 +1,20 @@
 # App API proposal
 
-**Status: proposed v1; no endpoints are implemented.** This is the exact app-side contract for [APP_PLAN.md](APP_PLAN.md). The ESP32 uses [BLE telemetry](ble-protocol.md), not HTTP: the browser reads its identity and snapshots, maps the state enum to a string, and sends JSON to Rails. Neither HTTP nor BLE v1 provides browser-issued calibration/start/end commands.
+**Status: v1 contract with a Rails scaffold under review; hosted account and Tiger Data integration proposed.** This is the app-side contract for [APP_PLAN.md](APP_PLAN.md). The ESP32 uses [BLE telemetry](ble-protocol.md), not HTTP: the browser reads its identity and snapshots, maps the state enum to a string, and sends JSON to Rails. Neither HTTP nor BLE v1 provides browser-issued calibration/start/end commands.
 
 ## Boundary and deployment assumptions
 
-Provisional first deployment: one Rails process bound to laptop loopback, one server-configured demo profile and IANA timezone, one wearable worn by one person. Multiple registered devices are for replacement/testing, not concurrent wear; overlapping sessions from different devices must be flagged before interpreting their sum as personal tracked time. No client-supplied profile or owner IDs are accepted.
+Hosted target: authenticated users access Rails over HTTPS, and Rails stores canonical sessions plus accepted-snapshot history in Tiger Cloud as proposed in [data-storage.md](data-storage.md). The local single-profile scaffold is a prototype, not a deployable multi-user service. Derive account and timezone from the authenticated session; no client-supplied profile or owner IDs are accepted. Multiple devices per user are for replacement/testing, not concurrent wear; overlapping sessions must be flagged before interpreting their sum as personal tracked time.
 
 The browser and Rails share an origin. Mutations send `Content-Type: application/json`, the Rails CSRF token, and same-origin cookies. Keep Rails request-forgery protection; device identity alone grants no ownership. Do not expose the no-login demo on a public/LAN interface. Hosting or separate wearer accounts requires a chosen authentication and authorization model first. [Rails security guide](https://guides.rubyonrails.org/security.html)
 
 All API responses are JSON and use `Cache-Control: no-store`. Parse integers strictly: floats, numeric strings, booleans, nulls, and out-of-range values are invalid. Reject unknown request fields in v1 so contract drift is visible. Enforce an 8 KiB request-body limit. Dates below are ISO dates; timestamps are RFC 3339 instants with an explicit offset, stored as UTC.
+
+## Hosted contract additions (proposed, not implemented)
+
+Keep snapshot bodies and reconciliation dispositions unchanged. Require authentication on every data endpoint (`401` if absent), resolve devices within the current user (`404` for unknown or non-owned devices), and derive all owner fields on the server. Registration may use an administrator-provisioned binding for a closed pilot; general enrollment needs a separate possession-proof flow before rollout. A bare device ID never authorizes a claim. Existing `403` CSRF behavior remains.
+
+The route table below uses the demo profile in the local prototype and the authenticated account in the hosted target. Summary timezone means that account's configured timezone, frozen separately per session. On accepted ingestion only, write the canonical session and one hypertable row in the same transaction; duplicates, stale revisions, and failures append nothing. See [data-storage.md](data-storage.md) for uniqueness, retention, migration, and access-control checks.
 
 ## Routes
 
@@ -185,4 +191,4 @@ An empty summary has zero counts/durations, `non_slouch_percent: null`, and zero
 - Two sessions of 60/10 and 120/60 tracked/slouch seconds produce 180 tracked, 70 slouch, 110 non-slouch, and 61.11%, not the mean of their percentages.
 - Empty dates, partial sessions, challenge threshold, and repeated uploads behave consistently without inventing observations or extra rewards.
 
-These are planned tests, not existing test results. Offline all-day history, public hosting/authentication, device commands, and the final calendar policy still require team decisions before implementation.
+These are acceptance requirements, not a claim that all scaffold tests pass. Offline all-day history, device commands, and the final calendar policy still require team decisions. Online storage is now the chosen direction; implement the account, enrollment, and operational gates in [data-storage.md](data-storage.md) before public hosting.

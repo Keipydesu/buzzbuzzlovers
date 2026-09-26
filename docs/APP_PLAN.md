@@ -1,12 +1,12 @@
 # App plan (Rails + browser)
 
-**Status: draft proposal, not implemented.** Scope is the app side only: the browser BLE adapter and the Rails web app. Wire-level BLE fields, UUIDs, and encoding are defined in [ble-protocol.md](ble-protocol.md) and are not repeated here except where the app-side contract depends on them. See [ROADMAP.md](ROADMAP.md) for how this fits the overall sequencing (this document is Phase 3 + Phase 4 detail).
+**Status: architecture proposal; Rails persistence/API scaffold under review, hosted integration not implemented.** Scope is the app side only: the browser BLE adapter and the Rails web app. Wire-level BLE fields, UUIDs, and encoding are defined in [ble-protocol.md](ble-protocol.md) and are not repeated here except where the app-side contract depends on them. See [ROADMAP.md](ROADMAP.md) for how this fits the overall sequencing (this document is Phase 3 + Phase 4 detail).
 
 The ESP32 owns all posture classification. Nothing here recomputes posture state from raw sensor data; the app only stores and displays values the device already calculated.
 
 ## Proposed stack and application structure
 
-Ruby on Rails is the confirmed preference. Recommend a conventional Rails app with ERB views, Turbo navigation, Stimulus for the BLE adapter and chart updates, PostgreSQL for persistence, and Tailwind CSS for responsive styling. These supporting choices and exact versions are proposals, not installed dependencies. Keep one Rails app; the browser receives live BLE data directly, so a separate frontend service or push server is unnecessary for the initial journey.
+Ruby on Rails is the confirmed preference. Recommend a conventional Rails app with ERB views, Turbo navigation, Stimulus for the BLE adapter and chart updates, Tiger Cloud PostgreSQL/TimescaleDB for hosted persistence, and Tailwind CSS for responsive styling. Tiger Data online storage is the chosen direction; managed hosting details and exact versions are proposals, and scaffold dependencies have not thereby been certified as vetted. See [data-storage.md](data-storage.md) for the integration plan. Keep one Rails app; the browser receives live BLE data directly, so a separate frontend service or push server is unnecessary for the initial journey.
 
 All stack selections, scaffold-generated gems, and later dependency updates must satisfy [the dependency safety policy](dependency-safety.md). Select established dependencies and supported versions with documented security review; do not default to brand-new packages or unreviewed latest releases. Review direct and transitive dependencies before installation, commit the resulting lockfiles, and record audit tooling and commands when implementation begins.
 
@@ -35,7 +35,7 @@ This remains a recommendation pending an explicit team/operator decision, not so
 
 ## Data model
 
-Two tables, no per-episode records (per MVP scope, only cumulative counts/durations are transmitted). Named `PostureSession` rather than `Session` to avoid colliding with Rails' own session/auth concepts once accounts exist.
+The scaffold baseline has two canonical tables and no per-episode records (only cumulative counts/durations are transmitted). The hosted proposal adds users and server-derived ownership, plus a separate accepted-snapshot hypertable; it does not convert these canonical tables to hypertables. The schema below is the baseline, extended by [data-storage.md](data-storage.md). Named `PostureSession` rather than `Session` to avoid colliding with Rails' own session/auth concepts once accounts exist.
 
 ```
 devices
@@ -65,7 +65,7 @@ posture_sessions
 
 ### Device registration
 
-One demo profile, configured server-side (not a query param or client-supplied value) — no multi-tenant profile selection in v1, matching MVP.md open decision 8 being unresolved. A device row is created explicitly once the browser has read the device's BLE identity characteristic, via registration rather than being implicitly created by the first snapshot POST — the device identity is an opaque identifier, not a credential, so registration doesn't imply any authentication claim about who owns the physical wearable.
+The scaffold uses one server-configured demo profile. The hosted target replaces it with an authenticated account and server-derived ownership; every read, summary, and mutation must be scoped accordingly. Device identity remains an opaque identifier, not a credential. Online registration must verify a pre-provisioned binding or an agreed possession-proof flow; a plain POST of a BLE ID cannot assign ownership. See [data-storage.md](data-storage.md).
 
 Explicitly do **not** derive an "upright time" field from `tracked_seconds - slouch_seconds`. Label it in code, API responses, and UI copy as *device-classified non-slouch time* — the device isn't asserting clinically correct posture, only "not currently in a detected slouch episode."
 
@@ -109,7 +109,7 @@ Given the read-only-BLE default above, there is no separate HTTP action that end
 Route paths belong in app-api.md; the shapes and behavior needed:
 
 - **Current session** — the latest posture session for the registered device (whether or not it has been marked ended), or an explicit empty response if none exist yet. Because sessions can only end via device telemetry, an "open" session here may just mean the device hasn't reported ending it — including one abandoned hours ago. Label this as *last-known session state*, never as proof of a live, currently-tracking device; liveness is judged separately from the browser's own connection/staleness state (Live session screen below), not from this endpoint.
-- **Today** — tracked/slouch seconds and episode count summed across sessions whose `calendar_day` is today (today is fixed by the single profile's configured timezone, not a client-supplied query parameter — there's only one profile in v1, so there's nothing for a caller to legitimately choose). Empty-but-explicit shape (zeros, not omitted fields) when nothing recorded yet, so the UI can render a real empty state rather than treating absence as an error.
+- **Today** — tracked/slouch seconds and episode count summed across sessions whose `calendar_day` is today (today uses the authenticated account's configured timezone in the hosted target, or the server demo timezone in the local scaffold; neither accepts a per-request timezone override). Empty-but-explicit shape (zeros, not omitted fields) when nothing recorded yet, so the UI can render a real empty state rather than treating absence as an error.
 - **Weekly history** — same aggregation, one row per of the last 7 `calendar_day` values fixed relative to the profile's timezone, including days with no sessions (explicit zero rows, not gaps the frontend has to infer). Not an arbitrary date-range query in v1.
 
 All three are computed by querying on read (no background aggregation job) — session count per device is small enough for v1 that a job or cache layer is premature. Revisit only if a concrete screen's latency becomes a problem in testing.
@@ -118,7 +118,7 @@ No websockets for v1: the browser already holds the live BLE connection and is t
 
 ## Ownership and pairing scope
 
-Provisional v1 uses one server-configured demo profile on a Rails server bound to the demo laptop's loopback interface, without login screens. Its timezone must be configured explicitly. This is a local demo deployment assumption, not a decision to publish unauthenticated tracking data. Public/LAN hosting or multiple wearers requires authentication, per-device ownership checks, and profile-scoped queries before deployment. Keep same-origin requests and Rails CSRF protection in the local demo. Device registration identifies a wearable; it does not prove ownership.
+The target is hosted Rails with Tiger Cloud and authenticated per-user storage, as proposed in [data-storage.md](data-storage.md). This replaces the earlier local-only target. The current no-login scaffold remains restricted to local development until account authentication, possession-verified device enrollment, user-scoped queries, HTTPS, and database TLS are implemented and tested. Keep same-origin requests and Rails CSRF protection. Users need no database installation; browsers keep only live state and pending uploads.
 
 ## Connection, saving, and calendar behavior
 
@@ -136,12 +136,12 @@ First-seen-date grouping is the provisional calendar policy. Today and weekly su
 
 ## Delivery milestones
 
-1. **Decision pass** — confirm supporting Rails stack, local/single-profile scope, device-side controls, first-seen-date grouping versus true daily records, and challenge mechanic. Freeze the accepted API version. This planning task does not authorize scaffolding.
-2. **Rails persistence and API** — Device/PostureSession models, migrations, registration, transactional ingestion, and read summaries. Exit when request tests cover duplicate/conflict/regression/ended cases, concurrent first insert, numeric bounds, and timezone grouping. Use synthetic HTTP fixtures matching the BLE example.
+1. **Decision pass** — confirm supporting Rails stack, hosted account/enrollment design and Tiger Cloud region/tier, retention and vetted versions, device-side controls, first-seen-date grouping versus true daily records, and challenge mechanic. Freeze the accepted API version. This planning task does not authorize scaffolding.
+2. **Rails persistence and hosted API** — resolve scaffold review findings, add account ownership and authorized registration, then integrate atomic session/history writes with the Tiger Data rollout in [data-storage.md](data-storage.md). Preserve Device/PostureSession models, reconciliation, and read summaries. Exit when request tests cover duplicate/conflict/regression/ended cases, concurrent first insert, numeric bounds, and timezone grouping. Use synthetic HTTP fixtures matching the BLE example.
 3. **Browser transport and saving** — pure byte decoder, deterministic fixture adapter, actual BLE adapter, and upload queue. Exit when ordering, reconnect, failed uploads, newer-in-flight snapshots, tab resume, and unsupported-browser states pass checks; verify BLE on an actual laptop separately.
 4. **Dashboard** — live/last-known state, saved versus unsaved feedback, Today and Weekly views, textual chart alternatives, empty states, and mobile/laptop layouts. Exit when reload, no-data days, partial sessions, and weighted summaries display correctly.
 5. **Challenge and integration** — implement the agreed reward rule, test exact threshold and duplicate-upload behavior, then rehearse: connect → device calibration/start → upright → sustained slouch → recover → device end → saved history after reload. Include a disconnect/reconnect trial and a visible saving failure.
 
 Suggested app work split for the four-person team: Rails ingestion/data; browser BLE/sync; responsive interface/charts; test fixtures/integration/demo. Assign named owners later; shared contract fixtures connect the workstreams.
 
-Propose Rails' generated Minitest suite for model/request/query tests and the chosen JavaScript toolchain's test runner for decoder/queue tests; select the latter when the build tooling is agreed. Run database concurrency checks on the chosen production database. No coverage percentage or test commands are established yet. Hardware transport checks remain distinct from simulated tests. Record actual run commands and setup in README.md during implementation. No build deadline is set; milestones express dependencies, not dates.
+The scaffold uses Rails Minitest for model/request/query tests; choose the JavaScript test runner when build tooling is agreed. Run concurrency and hypertable checks on an isolated database matching the chosen production engine and vetted extension version, never the live user database. No coverage percentage is established; verify runtime prerequisites before claiming tests pass. Hardware transport checks remain distinct from simulated tests. Record actual run commands and setup in README.md during implementation. No build deadline is set; milestones express dependencies, not dates.
