@@ -18,12 +18,18 @@ module HypertableSetup
     connection = ActiveRecord::Base.connection
     return unless timescaledb_available?(connection)
 
+    schema = extension_schema(connection)
+
     HYPERTABLES.each do |table, time_column|
       next unless connection.table_exists?(table)
       next if hypertable?(connection, table)
 
+      # Schema-qualified (not just relying on search_path already including
+      # it): callers may run with a deliberately narrow search_path — see
+      # test/lib/hypertable_setup_test.rb's scratch-schema isolation, which
+      # needs this to still resolve create_hypertable/by_range regardless.
       connection.execute(
-        "SELECT create_hypertable(#{connection.quote(table)}, by_range(#{connection.quote(time_column)}), if_not_exists => TRUE);"
+        "SELECT #{schema}.create_hypertable(#{connection.quote(table)}, #{schema}.by_range(#{connection.quote(time_column)}), if_not_exists => TRUE);"
       )
     end
   end
@@ -32,11 +38,27 @@ module HypertableSetup
     connection.select_value("SELECT 1 FROM pg_extension WHERE extname = 'timescaledb'").present?
   end
 
+  def self.extension_schema(connection)
+    connection.quote_table_name(
+      connection.select_value(
+        "SELECT nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace WHERE extname = 'timescaledb'"
+      )
+    )
+  end
+
+  # Resolves `table` the same way create_hypertable itself would (via the
+  # current search_path, by comparing OIDs through to_regclass) rather than
+  # matching on hypertable_name alone — a bare name match would false-positive
+  # against a same-named hypertable in a *different* schema (e.g. a scratch
+  # schema used for isolated testing alongside the real one in "public"),
+  # silently skipping the create_hypertable call this method exists to guard.
   def self.hypertable?(connection, table)
     return false unless timescaledb_available?(connection)
 
-    connection.select_value(
-      "SELECT 1 FROM timescaledb_information.hypertables WHERE hypertable_name = #{connection.quote(table)}"
-    ).present?
+    connection.select_value(<<~SQL).present?
+      SELECT 1 FROM timescaledb_information.hypertables h
+      WHERE (quote_ident(h.hypertable_schema) || '.' || quote_ident(h.hypertable_name))::regclass
+          = to_regclass(#{connection.quote(table)})
+    SQL
   end
 end
