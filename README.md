@@ -39,6 +39,8 @@ The BLE link is local. Whether Rails is hosted online or runs locally is still u
 
 Read [the MVP plan](docs/MVP.md) for scope, the demo flow, proposed workstreams, and open decisions. Read [the roadmap](docs/ROADMAP.md) for how that scope sequences into phases.
 
+For the software work, read [the app plan](docs/APP_PLAN.md) and [the app API proposal](docs/app-api.md). The [BLE proposal](docs/ble-protocol.md) defines the wearable-to-browser boundary. These are planning documents, not implemented interfaces.
+
 ## Development
 
 There are no installation or run commands yet. Agree on the remaining hardware and software choices before scaffolding the Rails app or firmware.
