@@ -20,7 +20,15 @@ module ApiTestHelpers
     { snapshot: valid_snapshot(snapshot_overrides), observation: valid_observation(observation_overrides) }
   end
 
+  def sign_in(user = nil)
+    @test_user = user || User.find_or_create_by!(username: "test_user") { |record| record.password = "test password long" }
+    post login_path, params: { username: @test_user.username, password: "test password long" }
+    @test_user
+  end
+
   def register_device(device_id = VALID_DEVICE_ID)
+    sign_in unless @test_user
+    Device.provision!(device_id: device_id, user: @test_user)
     post api_v1_devices_path, params: { device_id: device_id }, as: :json
     device_id
   end

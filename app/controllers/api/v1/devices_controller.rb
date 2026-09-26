@@ -2,7 +2,7 @@ module Api
   module V1
     class DevicesController < BaseController
       def index
-        devices = Device.order(:first_seen_at)
+        devices = current_user.devices.order(:first_seen_at)
         render json: { devices: devices.map { |device| serialize(device) } }
       end
 
@@ -19,8 +19,10 @@ module Api
             message: "device_id must be 32 lowercase hex characters")
         end
 
-        registration = Device.register(device_id)
-        render json: { device: serialize(registration.device) }, status: registration.created? ? :created : :ok
+        device = current_user.devices.find_by(id: device_id)
+        raise ApiError.new(status: :not_found, code: "device_not_found", message: "Device is not registered") unless device
+
+        render json: { device: serialize(device) }, status: :ok
       end
 
       private

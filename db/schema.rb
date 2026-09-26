@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_055214) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_201500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -19,6 +19,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_055214) do
     t.datetime "last_seen_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_devices_on_user_id"
     t.check_constraint "id::text ~ '^[0-9a-f]{32}$'::text", name: "devices_id_is_lowercase_hex32"
   end
 
@@ -39,8 +41,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_055214) do
     t.date "calendar_day", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["device_id", "device_session_id"], name: "index_posture_sessions_on_device_id_and_device_session_id", unique: true
     t.index ["device_id"], name: "index_posture_sessions_on_device_id"
+    t.index ["user_id"], name: "index_posture_sessions_on_user_id"
     t.check_constraint "device_session_id >= 1 AND device_session_id <= '4294967295'::bigint", name: "posture_sessions_device_session_id_range"
     t.check_constraint "ended = (state::text = 'ended'::text)", name: "posture_sessions_ended_matches_state"
     t.check_constraint "episode_count >= 0 AND episode_count <= 65535", name: "posture_sessions_episode_count_range"
@@ -52,5 +56,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_055214) do
     t.check_constraint "tracked_seconds >= 0 AND tracked_seconds <= '4294967295'::bigint", name: "posture_sessions_tracked_seconds_range"
   end
 
+  create_table "users", force: :cascade do |t|
+    t.string "username", null: false
+    t.string "password_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((username)::text)", name: "index_users_on_normalized_username", unique: true
+    t.check_constraint "username::text ~ '^[a-z0-9_]{3,24}$'::text", name: "users_username_format"
+  end
+
+  add_foreign_key "devices", "users"
   add_foreign_key "posture_sessions", "devices"
+  add_foreign_key "posture_sessions", "users"
 end

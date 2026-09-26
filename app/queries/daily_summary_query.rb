@@ -1,8 +1,8 @@
 # Sums counters once per session (never per snapshot, never averaging per-session
 # percentages), per docs/app-api.md "Read responses and summary semantics".
 class DailySummaryQuery
-  def self.call(date:)
-    row = PostureSession.on_calendar_day(date).pick(
+  def self.call(date:, sessions:)
+    row = sessions.on_calendar_day(date).pick(
       Arel.sql("COUNT(*)"),
       Arel.sql("COUNT(*) FILTER (WHERE NOT ended)"),
       Arel.sql("COALESCE(SUM(tracked_seconds), 0)::bigint"),

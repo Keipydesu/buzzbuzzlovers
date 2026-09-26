@@ -2,6 +2,10 @@
 
 **Status: v1 contract with a Rails scaffold under review; hosted account and Tiger Data integration proposed.** This is the app-side contract for [APP_PLAN.md](APP_PLAN.md). The ESP32 uses [BLE telemetry](ble-protocol.md), not HTTP: the browser reads its identity and snapshots, maps the state enum to a string, and sends JSON to Rails. Neither HTTP nor BLE v1 provides browser-issued calibration/start/end commands.
 
+## Account implementation update
+
+Username/password login and administrator-provisioned device ownership now replace the no-login profile. See [MVP authentication](authentication-mvp.md). All endpoints require authentication (`401`); unknown and non-owned devices return `404`. Registration only acknowledges an existing owned binding (`200`) and cannot create or claim a device. Reads and summaries are account-scoped. The remaining hosted/Tiger Data work below stays proposed; older single-profile/201 descriptions are historical scaffold context.
+
 ## Boundary and deployment assumptions
 
 Hosted target: authenticated users access Rails over HTTPS, and Rails stores canonical sessions plus accepted-snapshot history in Tiger Cloud as proposed in [data-storage.md](data-storage.md). The local single-profile scaffold is a prototype, not a deployable multi-user service. Derive account and timezone from the authenticated session; no client-supplied profile or owner IDs are accepted. Multiple devices per user are for replacement/testing, not concurrent wear; overlapping sessions must be flagged before interpreting their sum as personal tracked time.

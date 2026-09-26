@@ -2,6 +2,7 @@ require "test_helper"
 
 class Api::V1::RequestGuardsTest < ActionDispatch::IntegrationTest
   setup do
+    register_device
     @previous_forgery_protection = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true
     get root_path
@@ -14,7 +15,7 @@ class Api::V1::RequestGuardsTest < ActionDispatch::IntegrationTest
 
   test "accepts parameterized JSON and rejects other media types" do
     post_device(body, content_type: "application/json; charset=utf-8")
-    assert_response :created
+    assert_response :ok
     post_device(body, content_type: "text/plain")
     assert_response :unsupported_media_type
   end
@@ -37,7 +38,7 @@ class Api::V1::RequestGuardsTest < ActionDispatch::IntegrationTest
 
   test "8192 bytes still parse and CSRF protection remains active" do
     post_device(body.ljust(8192))
-    assert_response :created
+    assert_response :ok
     post_device(body, token: nil)
     assert_response :forbidden
     assert_equal "no-store", response.headers["Cache-Control"]
@@ -58,9 +59,12 @@ class Api::V1::RequestGuardsTest < ActionDispatch::IntegrationTest
 
   test "missing content length preserves accepted bodies for parsing" do
     ActionController::Base.allow_forgery_protection = false
-    status, = Middleware::ApiBodyLimit.new(Api::V1::DevicesController.action(:create)).call(request_env(body.ljust(8192)))
-    assert_equal 201, status
-    assert Device.exists?(VALID_DEVICE_ID)
+    app = lambda do |env|
+      assert_equal({ "device_id" => VALID_DEVICE_ID }, ActionDispatch::Request.new(env).request_parameters)
+      [ 200, {}, [] ]
+    end
+    status, = Middleware::ApiBodyLimit.new(app).call(request_env(body.ljust(8192)))
+    assert_equal 200, status
   end
 
   test "chunked bodies use a bounded read before controller dispatch" do

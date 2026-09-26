@@ -1,0 +1,6 @@
+.account-page { max-width: 28rem; margin: 3rem auto; padding: 1.5rem; color: #051e39; background: #fff; border-radius: 1rem; }
+.account-page form { display: grid; gap: .65rem; margin: 1.5rem 0; }
+.account-page input { border: 1px solid #667; border-radius: .4rem; padding: .7rem; }
+.account-page input[type=submit] { background: #051e39; color: white; cursor: pointer; }
+.account-page a { text-decoration: underline; }
+.account-nav { display: flex; gap: 1rem; justify-content: flex-end; padding: .75rem 1rem; }

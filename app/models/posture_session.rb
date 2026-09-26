@@ -1,4 +1,9 @@
 class PostureSession < ApplicationRecord
+  belongs_to :user, optional: true
+  attr_readonly :user_id
+  before_validation :assign_owner, on: :create
+  validate :owner_matches_device
+
   belongs_to :device, inverse_of: :posture_sessions
 
   STATES = %w[idle calibrating upright slouching sensor_error ended].freeze
@@ -36,6 +41,14 @@ class PostureSession < ApplicationRecord
   end
 
   private
+
+  def assign_owner
+    self.user_id = device&.user_id
+  end
+
+  def owner_matches_device
+    errors.add(:user_id, "must match device owner") unless user_id == device&.user_id
+  end
 
   def slouch_within_tracked
     return if slouch_seconds.nil? || tracked_seconds.nil?

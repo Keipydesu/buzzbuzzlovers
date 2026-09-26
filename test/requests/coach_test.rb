@@ -1,6 +1,8 @@
 require "test_helper"
 
 class CoachTest < ActionDispatch::IntegrationTest
+  setup { sign_in }
+
   test "unavailable adapter produces a friendly 503" do
     adapter = Object.new
     def adapter.call(*)

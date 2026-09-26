@@ -8,7 +8,7 @@ module Api
             message: "device_id must be 32 lowercase hex characters")
         end
 
-        device = Device.find_by(id: device_id)
+        device = current_user.devices.find_by(id: device_id)
         raise ApiError.new(status: :not_found, code: "device_not_found", message: "Device is not registered") unless device
 
         session = device.posture_sessions.order(device_session_id: :desc).first

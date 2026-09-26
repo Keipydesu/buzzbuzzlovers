@@ -1,5 +1,7 @@
 # bbl
 
+Account implementation and operator setup: [MVP authentication](docs/authentication-mvp.md).
+
 A HackGT 13 project by team **bbl**: a small wearable that tracks slouching, paired with a mobile-first web dashboard for daily awareness, weekly history, and gamified progress.
 
 Saved for a future iteration: [friend-group competition as a major app experience](docs/decisions/011-social-competition-direction.md), with rankings and an ergonomics-helper idea. Further implementation is paused; scoring and group behavior remain open.
