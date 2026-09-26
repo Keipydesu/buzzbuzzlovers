@@ -23,7 +23,7 @@ app/views/dashboard/         # primary mobile-first screen
 test/                        # Rails model/request/summary tests
 ```
 
-Use a primary dashboard with live status and today near the top, challenge progress below, and seven-day history further down. The connect flow can be inline; no separate onboarding or settings area is required. Keep essential buttons touch-sized, labels readable, charts paired with textual totals, and status changes understandable without relying on color.
+Lead the dashboard with today’s slouch-frequency bar chart, with goals and current connection status secondary, per [decision 007](decisions/007-lead-with-habit-trends.md). Add an explicitly labeled weekly average to seven-day history. The preview timeline is synthetic: the cumulative API cannot yet provide accurate time-bucketed episodes. The connect flow can be inline; no separate onboarding or settings area is required. Keep essential buttons touch-sized, labels readable, charts paired with textual totals, and status changes understandable without relying on color.
 
 ## Open decisions and provisional defaults
 

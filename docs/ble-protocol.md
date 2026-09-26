@@ -34,7 +34,7 @@ Exactly **20 bytes**, with unsigned multi-byte integers encoded little-endian. R
 
 Proposed states: `0` idle, `1` calibrating, `2` upright, `3` slouching, `4` sensor error, `5` ended. Unknown values are rejected. Before the first session, identity remains readable and the snapshot uses session `0`, state idle, and zero counters. Session `0` is never ingested as activity.
 
-Track time internally at firmware precision; transmit cumulative whole seconds rounded down. No tracking time accumulates during calibration or sensor failure. Require `slouch_seconds <= tracked_seconds`; all counters must be nondecreasing within a session. The detection proposal must still define treatment of the initial persistence window and interruptions during an episode.
+Track time internally at firmware precision; transmit cumulative whole seconds rounded down. No tracking time accumulates during calibration or sensor failure. Require `slouch_seconds <= tracked_seconds`; all counters must be nondecreasing within a session. An episode qualifies only after a continuously detected slouch lasts **more than 60 seconds**, and is counted once per sustained episode; see [decision 006](decisions/006-one-minute-slouch-qualification.md). This is an accepted requirement, not implemented firmware. The detection proposal must still define treatment of the initial persistence window and interruptions during an episode.
 
 ## Publication and lifecycle
 

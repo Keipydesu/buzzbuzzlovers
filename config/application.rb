@@ -1,6 +1,7 @@
 require_relative "boot"
 
 require "rails/all"
+require_relative "../lib/middleware/api_body_limit"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -10,11 +11,12 @@ module Buzzbuzzlovers
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.1
+    config.middleware.insert_before 0, Middleware::ApiBodyLimit
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    config.autoload_lib(ignore: %w[assets tasks middleware])
 
     # Never auto-dump db/schema.rb after a migration. This app's primary
     # connection can point at either local PostgreSQL or Tiger Cloud

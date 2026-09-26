@@ -22,7 +22,7 @@ The wearable is responsible for sensing and calculating posture. The app is prim
 | History | Weekly view |
 | Motivation | Gamified posture-awareness progress |
 
-No build deadline has been set. Tiger Data integration is the chosen storage direction; service tier/region, Rails host, authentication design, supporting tools, sensor, and detection threshold remain open. See [the hosted storage plan](data-storage.md).
+No build deadline has been set. Tiger Data integration is the chosen storage direction; service tier/region, Rails host, authentication design, supporting tools, sensor, and sensor-angle threshold remain open. Slouch qualification requires more than 60 continuous seconds; see [decision 006](decisions/006-one-minute-slouch-qualification.md). See [the hosted storage plan](data-storage.md).
 
 ## Proposed first complete loop
 
@@ -47,12 +47,13 @@ Calibration, session controls, and the exact challenge mechanics are proposals t
 - Expose computed results through a BLE service.
 - Define session boundaries and what happens when Bluetooth disconnects or the device restarts.
 
-Detection thresholds, persistence windows, sensor placement, and recovery behavior must be tested on the selected hardware. Values from the discarded prototype are not established requirements.
+The persistence requirement is more than 60 continuous seconds, counting a sustained episode once. Sensor-angle thresholds, filtering, sensor placement, and recovery behavior must be tested on the selected hardware. Values from the discarded prototype are not established requirements.
 
 ### Web app
 
 - A connect/disconnect flow with clear connection status.
-- Current posture and session status while connected; mark disconnected or stale readings explicitly.
+- Lead with today’s slouch-frequency bar chart to support habit change; time-bucketed device history is required for real data and is not implemented. See [decision 007](decisions/007-lead-with-habit-trends.md).
+- Keep connection/session status secondary; mark disconnected or stale readings explicitly.
 - Today's tracked duration, slouch duration, and episode count.
 - Weekly history drawn from centrally saved sessions.
 - Authenticated accounts and verified device ownership before online user data is exposed; no user-managed local database.

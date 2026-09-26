@@ -37,7 +37,7 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 - [ ] Verify the exact board supports BLE; document sensor interface, voltage compatibility, mounting stability, and power plan
 - [ ] Implement calibration routine (upright baseline capture)
 - [ ] Decide sample rate, filtering, sensor-error handling, threshold hysteresis, and whether episode duration includes the initial persistence window
-- [ ] Implement posture classification loop distinguishing sustained slouch from brief movement
+- [ ] Implement posture classification with more than 60 seconds of continuous slouch required per episode; see [decision 006](decisions/006-one-minute-slouch-qualification.md)
 - [ ] Implement episode timing (start/end, elapsed slouch duration, count)
 - [ ] Define session boundaries: what happens on BLE disconnect or device restart
 - [ ] Expose results through BLE service per the agreed contract
@@ -74,7 +74,10 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 
 *Owner: TBD (proposed: claude)*
 
+A responsive Rails visual preview now exists at `/`, with sample states, a weekly chart, a goal ring, milestones, and light/dark modes. It does not implement live BLE or saved-user dashboard integration; the acceptance items below remain open.
+
 - [ ] Mobile-first dashboard: connection status, live posture/session state
+- [ ] Trend-first dashboard with today’s frequency bar chart; agree device time buckets/events and coverage before connecting real timeline data
 - [ ] Today's totals view (tracked duration, slouch duration, episode count)
 - [ ] Weekly history view
 - [ ] Daily challenge progress/reward display

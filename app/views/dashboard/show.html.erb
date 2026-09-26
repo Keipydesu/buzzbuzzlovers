@@ -1,0 +1,60 @@
+<% content_for :title, "bbl" %>
+<div class="tracker" data-controller="theme" data-theme="dark">
+  <a class="skip-link" href="#overview">Skip to today’s stats</a>
+  <main id="overview" class="dashboard">
+    <header class="topbar"><a href="<%= root_path %>" class="brand" aria-label="bbl home">bbl<span class="brand-period">.</span></a><div class="topbar-actions"><button type="button" class="theme-button" data-theme-target="button" data-action="theme#toggle" aria-label="Switch to light mode">☀ Light mode</button></div></header>
+    <section class="panel competition-hero" aria-labelledby="group-summary-title">
+      <div class="competition-heading"><div><p class="eyebrow">THIS WEEK'S RACE</p><h2 id="group-summary-title">Study group</h2></div><span class="subtle-label">5 friends · Sep 20–26</span></div>
+      <div class="competition-standing"><div class="standing-rank"><%= @empty ? "—" : "#3" %><span>your rank</span></div><div class="standing-message"><h3><%= @empty ? "Your place is waiting." : "The next spot is in reach." %></h3><p><%= @empty ? "Record activity to qualify this week." : "12.5% slouch share · Jordan is ahead at 10.1%" %></p></div></div>
+      <div class="competition-actions"><%= link_to "See leaderboard →", groups_path, class: "competition-primary" %><%= link_to "Create a group", groups_path(anchor: "create-group-title"), class: "group-link" %></div>
+    </section>
+
+      <section class="panel frequency-panel" aria-labelledby="frequency-title">
+        <div class="section-top"><div><h1 id="frequency-title">Today's slouch frequency</h1><p class="chart-caption">Episodes per 30-minute window · Today, AM</p></div></div>
+        <div class="session-metrics">
+          <div><span class="metric-label">Today's episodes</span><p><%= @episodes %><span>total</span></p></div>
+          <div><span class="metric-label">Tracked time</span><p><%= @tracked_minutes %><span>min</span></p></div>
+          <div><span class="metric-label">Slouch time</span><p><%= @slouch_minutes %><span>min</span></p></div>
+        </div>
+        <div class="frequency-chart" role="img" aria-label="Episode counts in 30-minute windows: <%= @today.map { |time, count| "#{time}: #{count.nil? ? 'no data' : count}" }.join(', ') %>. No-data windows are distinct from recorded zero-episode windows.">
+          <div class="frequency-axis" aria-hidden="true"><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+          <div class="frequency-plot frequency-bars">
+            <% @today.each do |time, count| %>
+              <div class="frequency-column">
+                <% if count.nil? %>
+                  <span class="frequency-missing">No data</span>
+                <% else %>
+                  <div class="frequency-bar" style="height: <%= count * 25 %>%"><span class="frequency-count"><%= count %></span></div>
+                <% end %>
+                <span class="frequency-time"><%= time %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <p class="frequency-rule">A slouch counts only after the change lasts <strong>more than 1 minute.</strong></p>
+        <div class="history-footer frequency-footer"><p><%= @preview == "disconnected" ? "Wearable disconnected · showing previous observations." : "No data means unrecorded. Zero means tracked with no episodes." %></p><details><summary>View today's data</summary><table><caption>30-minute windows · AM · end time exclusive</caption><thead><tr><th scope="col">Window starts</th><th scope="col">Episodes</th><th scope="col">Tracked min</th></tr></thead><tbody><% @today.each do |time, count| %><tr><th scope="row"><%= time %></th><td><%= count.nil? ? "No data" : count %></td><td><%= count.nil? ? "—" : 30 %></td></tr><% end %></tbody></table></details></div>
+      </section>
+
+    <section class="panel muse-entry"><div><h2>Find your next adjustment</h2><p>Ask Muse for help with your desk setup and habits.</p></div><%= link_to "Ask Muse →", coach_path, class: "group-link" %></section>
+
+    <section id="history" class="panel history-panel" aria-labelledby="history-title">
+      <div class="section-top"><div><p class="eyebrow">BUILDING A PICTURE</p><h2 id="history-title">Your week</h2><p class="chart-caption">Tracked minutes · Sessions by first-seen date · Sep 20–26</p></div><div class="legend"><span><i class="non-slouch-key"></i>Non-slouch</span><span><i class="slouch-key"></i>Slouch</span><span><i class="average-key"></i>Weekly average</span></div></div>
+      <div class="chart" role="img" aria-label="Tracked minutes by day, stacked into device-classified non-slouch and slouch time. The dashed line shows average tracked minutes per recorded day. Full values are available in the table below.">
+        <div class="chart-axis" aria-hidden="true"><span>400</span><span>200</span><span>0</span></div>
+        <div class="chart-plot">
+          <% if @weekly_average %><div class="weekly-average" style="top: <%= 20 + 142 * (1 - @weekly_average / 400) %>px" aria-hidden="true"></div><% end %>
+          <% @week.each do |day, tracked, slouch| %>
+            <div class="chart-column <%= "today-column" if day == "Sat" %>">
+              <span class="bar-value"><%= tracked.positive? ? tracked : "—" %></span>
+              <div class="bar-track"><% if tracked.positive? %><div class="stacked-bar" style="height: <%= tracked * 100 / 400.0 %>%"><div class="slouch-bar" style="height: <%= slouch * 100 / tracked.to_f %>%"></div><div class="non-slouch-bar"></div></div><% else %><span class="no-data-mark">No data</span><% end %></div>
+              <span class="day-label"><%= day %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <div class="history-footer"><p><%= @weekly_average ? "Weekly average: #{number_with_precision(@weekly_average, precision: 1)} tracked min / recorded day. No-data days excluded." : "Weekly average unavailable until activity is recorded." %></p><details><summary>View data table</summary><table><caption>Week · minutes</caption><thead><tr><th scope="col">Day</th><th scope="col">Tracked</th><th scope="col">Non-slouch</th><th scope="col">Slouch</th></tr></thead><tbody><% @week.each do |day, tracked, slouch| %><tr><th scope="row"><%= day %></th><% if tracked.zero? %><td colspan="3">No data</td><% else %><td><%= tracked %></td><td><%= tracked - slouch %></td><td><%= slouch %></td><% end %></tr><% end %></tbody></table></details></div>
+    </section>
+
+    <footer class="dashboard-footer"><span>bbl <span class="footer-divider">/</span> Posture awareness, at your pace.</span><span>Built for better habits.</span></footer>
+  </main>
+</div>
