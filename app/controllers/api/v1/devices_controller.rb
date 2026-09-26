@@ -19,9 +19,8 @@ module Api
             message: "device_id must be 32 lowercase hex characters")
         end
 
-        existing = Device.find_by(id: device_id)
-        device = Device.register(device_id)
-        render json: { device: serialize(device) }, status: existing ? :ok : :created
+        registration = Device.register(device_id)
+        render json: { device: serialize(registration.device) }, status: registration.created? ? :created : :ok
       end
 
       private

@@ -3,6 +3,10 @@ module Api
     class SnapshotsController < BaseController
       SNAPSHOT_KEYS = %w[protocol_version state sequence tracked_seconds slouch_seconds episode_count].freeze
       MAX_FUTURE_CLOCK_SKEW = 5.minutes
+      # RFC 3339 instant with a mandatory explicit offset (Z or +HH:MM/-HH:MM).
+      # Time.iso8601 alone accepts an offset-free string and silently assumes
+      # the server's local timezone, which can freeze the wrong calendar day.
+      RFC3339_WITH_OFFSET = /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\z/
 
       def update
         device_id = extract_device_id
@@ -65,7 +69,7 @@ module Api
           raise invalid_snapshot("snapshot must contain exactly #{SNAPSHOT_KEYS.join(', ')}")
         end
 
-        raise invalid_snapshot("protocol_version must be 1") unless snapshot["protocol_version"] == 1
+        raise invalid_snapshot("protocol_version must be 1") unless strict_int?(snapshot["protocol_version"], 1, 1)
         raise invalid_snapshot("state must be a known state") unless PostureSession::STATES.include?(snapshot["state"])
         raise invalid_snapshot("sequence out of range") unless strict_int?(snapshot["sequence"], 1, PostureSession::UINT32_MAX)
         raise invalid_snapshot("tracked_seconds out of range") unless strict_int?(snapshot["tracked_seconds"], 0, PostureSession::UINT32_MAX)
@@ -90,11 +94,14 @@ module Api
 
         raw = observation["first_observed_at"]
         raise invalid_observation("first_observed_at must be a string") unless raw.is_a?(String)
+        unless raw.match?(RFC3339_WITH_OFFSET)
+          raise invalid_observation("first_observed_at must be an RFC 3339 timestamp with an explicit offset")
+        end
 
         begin
           timestamp = Time.iso8601(raw)
         rescue ArgumentError
-          raise invalid_observation("first_observed_at must be an RFC 3339 timestamp with an offset")
+          raise invalid_observation("first_observed_at must be an RFC 3339 timestamp with an explicit offset")
         end
 
         if timestamp > Time.current + MAX_FUTURE_CLOCK_SKEW

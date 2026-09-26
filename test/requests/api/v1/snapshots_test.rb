@@ -103,7 +103,7 @@ class Api::V1::SnapshotsTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects floats, numeric strings, booleans, and nulls for integer fields" do
-    [1.0, "12", true, nil].each do |bad_value|
+    [ 1.0, "12", true, nil ].each do |bad_value|
       put_snapshot(VALID_DEVICE_ID, 7, snapshot_overrides: { sequence: bad_value })
       assert_response :unprocessable_entity, "expected #{bad_value.inspect} to be rejected"
       assert_equal "invalid_snapshot", response.parsed_body.dig("error", "code")
@@ -129,6 +129,31 @@ class Api::V1::SnapshotsTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_equal "invalid_observation", response.parsed_body.dig("error", "code")
+  end
+
+  test "rejects a protocol_version of 1.0 despite Ruby's 1.0 == 1" do
+    put snapshot_path_for(VALID_DEVICE_ID, 7),
+      params: { snapshot: valid_snapshot.merge(protocol_version: 1.0), observation: valid_observation }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "invalid_snapshot", response.parsed_body.dig("error", "code")
+  end
+
+  test "rejects first_observed_at without an explicit offset, even though Time.iso8601 would accept it" do
+    put snapshot_path_for(VALID_DEVICE_ID, 7),
+      params: { snapshot: valid_snapshot, observation: { first_observed_at: "2026-09-25T23:30:00" } }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "invalid_observation", response.parsed_body.dig("error", "code")
+  end
+
+  test "accepts first_observed_at with a Z offset and with a numeric offset" do
+    put_snapshot(VALID_DEVICE_ID, 7, observation_overrides: { first_observed_at: "2026-09-25T23:30:00Z" })
+    assert_response :ok
+
+    put_snapshot(VALID_DEVICE_ID, 8, snapshot_overrides: { sequence: 1 },
+      observation_overrides: { first_observed_at: "2026-09-25T19:30:00-04:00" })
+    assert_response :ok
   end
 
   test "rejects unknown fields in the snapshot object" do

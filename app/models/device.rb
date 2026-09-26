@@ -8,13 +8,34 @@ class Device < ApplicationRecord
   validates :id, presence: true, format: { with: DEVICE_ID_FORMAT }
   validates :first_seen_at, :last_seen_at, presence: true
 
+  Registration = Struct.new(:device, :created, keyword_init: true) do
+    def created? = created
+  end
+
+  # Returns whether *this* call created the row, not merely whether it now
+  # exists — a concurrent registration can also observe no existing device
+  # and lose the unique-constraint race, in which case it must report the
+  # documented 200 (existing), not 201 (created).
   def self.register(device_id)
     now = Time.current
-    device = find_by(id: device_id)
-    return device if device
+    existing = find_existing(device_id)
+    return Registration.new(device: existing, created: false) if existing
 
-    create!(id: device_id, first_seen_at: now, last_seen_at: now)
+    # requires_new: true opens a savepoint rather than joining any transaction
+    # already open on this connection (test transactional fixtures, a future
+    # caller). Without it, a unique-constraint failure here aborts the whole
+    # enclosing transaction, and the rescue's find_by! below fails too.
+    transaction(requires_new: true) do
+      Registration.new(device: create!(id: device_id, first_seen_at: now, last_seen_at: now), created: true)
+    end
   rescue ActiveRecord::RecordNotUnique
-    find_by!(id: device_id)
+    Registration.new(device: find_by!(id: device_id), created: false)
+  end
+
+  # Separated from register's own find_by! call so a test can force the
+  # existence check to miss a row without touching find_by!, which Rails
+  # implements as find_by(*args) || ... internally.
+  def self.find_existing(device_id)
+    find_by(id: device_id)
   end
 end

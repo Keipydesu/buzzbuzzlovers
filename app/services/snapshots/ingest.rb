@@ -33,7 +33,11 @@ module Snapshots
 
     def perform
       result = nil
-      ActiveRecord::Base.transaction do
+      # requires_new: true opens a savepoint rather than joining any transaction
+      # already open on this connection. Without it, a RecordNotUnique here
+      # would abort the whole enclosing transaction (test transactional
+      # fixtures, a future caller), and the retried attempt below would fail too.
+      ActiveRecord::Base.transaction(requires_new: true) do
         session = PostureSession.lock.find_by(device: device, device_session_id: device_session_id)
         result = session.nil? ? create_session : reconcile(session)
         raise ActiveRecord::Rollback unless result.accepted?

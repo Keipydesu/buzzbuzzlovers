@@ -43,7 +43,7 @@ class Api::V1::DevicesTest < ActionDispatch::IntegrationTest
 
     get api_v1_devices_path
 
-    assert_equal({ "devices" => [{ "device_id" => VALID_DEVICE_ID }] }, response.parsed_body)
+    assert_equal({ "devices" => [ { "device_id" => VALID_DEVICE_ID } ] }, response.parsed_body)
   end
 
   test "responses set Cache-Control: no-store" do

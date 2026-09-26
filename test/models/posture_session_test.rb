@@ -2,7 +2,7 @@ require "test_helper"
 
 class PostureSessionTest < ActiveSupport::TestCase
   def build_session(overrides = {})
-    device = Device.register("00112233445566778899aabbccddeeff")
+    device = Device.register("00112233445566778899aabbccddeeff").device
     now = Time.current
 
     PostureSession.new({
