@@ -1,0 +1,31 @@
+<% content_for :title, "#{@group_name} · bbl" %>
+<div class="tracker" data-controller="theme" data-theme="dark">
+  <main class="dashboard groups-page">
+    <header class="topbar"><a href="<%= root_path %>" class="brand" aria-label="bbl home">bbl<span class="brand-period">.</span></a><button type="button" class="theme-button" data-theme-target="button" data-action="theme#toggle" aria-label="Switch to light mode">☀ Light mode</button></header>
+    <%= link_to "← Your tracking", root_path, class: "back-link" %>
+    <div class="group-heading"><div><p class="eyebrow">BETTER HABITS, TOGETHER</p><h1><%= @group_name %></h1><p><%= @members.size %> members · Weekly competition</p></div></div>
+    <section class="panel leaderboard" aria-labelledby="leaderboard-title">
+      <div class="section-top"><div><h2 id="leaderboard-title">This week's rankings</h2><p class="chart-caption">Sep 20–26 · Lowest slouch share leads</p></div><span class="reward-pill">◇ Weekly podium</span></div>
+      <p class="ranking-description">Slouch time ÷ tracked time. Lower is better.</p>
+      <ol class="ranking-list">
+        <% @members.each do |rank, name, rate, coverage| %>
+          <li class="ranking-row <%= "ranking-you" if name == "You" %>">
+            <span class="rank-number" aria-label="<%= rank ? "Rank #{rank}" : "Unranked" %>"><%= rank || "—" %></span>
+            <span class="member-avatar" aria-hidden="true"><%= name.first %></span>
+            <div class="member-info"><h3><%= name %></h3><p><%= coverage %></p></div>
+            <span class="member-score"><%= rate ? "#{rate}%" : "Qualifying" %></span>
+          </li>
+        <% end %>
+      </ol>
+      <details class="competition-rules"><summary>How rankings work</summary><p>Track at least 2 hours across 3 days this week to qualify. Your score is total slouch time divided by total tracked time, not an average of daily percentages. Missing activity does not count as upright time. Equal scores share a rank.</p><p>Rankings change during the week. Only slouches lasting more than a minute count. Sessions are grouped by first-seen date.</p></details>
+    </section>
+    <section class="panel create-group" aria-labelledby="create-group-title">
+      <h2 id="create-group-title">Your friends. Your group.</h2><p>Start a group for your study crew.</p>
+      <%= form_with url: groups_path, method: :get do |form| %>
+        <%= form.label :name, "Group name" %>
+        <div class="group-form-row"><%= form.text_field :name, required: true, maxlength: 40, placeholder: "e.g. Library regulars", autocomplete: "off" %><%= form.submit "Create group", class: "group-create-button" %></div>
+      <% end %>
+    </section>
+    <footer class="dashboard-footer"><span>bbl <span class="footer-divider">/</span> Better habits, together.</span></footer>
+  </main>
+</div>
