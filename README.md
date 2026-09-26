@@ -6,7 +6,7 @@ Saved for a future iteration: [friend-group competition as a major app experienc
 
 The current working UI includes a competition section, a synthetic leaderboard at `/groups`, and an unfinished Muse page at `/coach`. Group creation only changes the preview URL; it does not save memberships or send invitations. Muse is restricted to development/test and requires local `META_MUSE_API_KEY` and `META_MUSE_MODEL` environment variables; no live API call has been verified. Keep credentials out of source control. Earlier UI descriptions below record prior iterations. Before this commit, Ruby lint checks and local Rails GET rendering checks for `/`, `/?preview=empty`, `/groups`, and `/coach` passed; these checks do not validate real competition or AI responses.
 
-**Status: Rails scaffold under review; dashboard preview available; hosted integration planned.** The current PR contains persistence/API code. A sample-data dashboard is available at `/`. Browser BLE integration, the live dashboard, and Tiger Data integration are not yet complete. The earlier JavaScript prototype has been discarded.
+**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. A sample-data dashboard is available at `/`. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, but accounts, authentication, and device-ownership enrollment — required before any public hosting per [the hosted storage plan](docs/data-storage.md) — are not yet implemented. Browser BLE integration and the live dashboard are not yet complete. The earlier JavaScript prototype has been discarded.
 
 ## The idea
 
@@ -82,7 +82,20 @@ Check [the health endpoint](http://127.0.0.1:3000/up). Run `bin/rails test` agai
 
 Each rbenv Ruby version has its own installed gems. On a fresh Ruby installation, install the reviewed lockfile with `BUNDLE_FROZEN=true bundle install`, then run `rbenv rehash`. The September 26, 2026 local setup used an explicitly authorized one-time exception to install the existing locked dependencies; this is not a completed dependency security review. All 41 existing tests passed (120 assertions).
 
-The hosted integration remains planned; these commands prepare local development and test databases only.
+The hosted integration remains partial; these commands prepare local development and test databases only.
+
+### Tiger Cloud hypertable (posture_snapshots)
+
+Copy `.env.example` to `.env` and fill in `TIGER_DATABASE_URL` (never commit `.env`; see [dependency safety](docs/dependency-safety.md) — no new gem was added for this, `config/boot.rb` has a small inline loader). Normal local commands above are **unaffected** and keep using local PostgreSQL; Tiger Cloud requires explicitly opting in per command:
+
+```sh
+set -a; source .env; set +a
+DATABASE_URL="$TIGER_DATABASE_URL" bin/rails db:migrate
+```
+
+`db/migrate/..._create_posture_snapshots.rb` converts the table to a TimescaleDB hypertable when the `timescaledb` extension is present (verified against Tiger Cloud, PostgreSQL 18.6 / TimescaleDB 2.30.1 as of September 26, 2026) and otherwise creates an ordinary table, so the same migration and model are exercised by the local Minitest suite (`bin/rails test`, unaffected, no `DATABASE_URL` needed) and by Tiger Cloud. `config.active_record.dump_schema_after_migration` is disabled (`config/application.rb`) specifically because this dual-target setup would otherwise bake Tiger Cloud's extensions into the committed `db/schema.rb` and break local `db:test:prepare`; run `bin/rails db:schema:dump` explicitly (with `DATABASE_URL` unset) after a local migration to update it.
+
+This is implementation-sequence step 4 from [data-storage.md](docs/data-storage.md) — the hypertable and `Snapshots::Ingest` history writes only, verified end-to-end (accepted snapshot → session row → one history row in an actual hypertable chunk) against an isolated Tiger Cloud dev instance with `sslmode=require`. Accounts, `user_id` ownership columns, `sslmode=verify-full`, and everything else the doc gates on remain not implemented.
 
 ## Browser constraint
 
