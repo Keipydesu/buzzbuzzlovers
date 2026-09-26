@@ -60,7 +60,7 @@ module Api
       end
 
       def find_device!(device_id)
-        Device.find_by(id: device_id) ||
+        current_user.devices.find_by(id: device_id) ||
           raise(ApiError.new(status: :not_found, code: "device_not_found", message: "Device is not registered"))
       end
 

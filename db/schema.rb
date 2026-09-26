@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_26_180931) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_26_203000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -19,7 +19,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_180931) do
     t.datetime "last_seen_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_devices_on_user_id"
     t.check_constraint "id::text ~ '^[0-9a-f]{32}$'::text", name: "devices_id_is_lowercase_hex32"
+  end
+
+  create_table "group_invitations", force: :cascade do |t|
+    t.bigint "group_id", null: false
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_group_invitations_on_code", unique: true
+    t.index ["group_id"], name: "index_group_invitations_on_group_id", unique: true
+  end
+
+  create_table "group_memberships", force: :cascade do |t|
+    t.bigint "group_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id", "user_id"], name: "index_group_memberships_on_group_id_and_user_id", unique: true
+    t.index ["group_id"], name: "index_group_memberships_on_group_id"
+    t.index ["user_id"], name: "index_group_memberships_on_user_id"
+  end
+
+  create_table "groups", force: :cascade do |t|
+    t.string "name", null: false
+    t.bigint "created_by_user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_user_id"], name: "index_groups_on_created_by_user_id"
   end
 
   create_table "posture_sessions", force: :cascade do |t|
@@ -39,8 +68,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_180931) do
     t.date "calendar_day", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["device_id", "device_session_id"], name: "index_posture_sessions_on_device_id_and_device_session_id", unique: true
     t.index ["device_id"], name: "index_posture_sessions_on_device_id"
+    t.index ["user_id"], name: "index_posture_sessions_on_user_id"
     t.check_constraint "device_session_id >= 1 AND device_session_id <= '4294967295'::bigint", name: "posture_sessions_device_session_id_range"
     t.check_constraint "ended = (state::text = 'ended'::text)", name: "posture_sessions_ended_matches_state"
     t.check_constraint "episode_count >= 0 AND episode_count <= 65535", name: "posture_sessions_episode_count_range"
@@ -48,7 +79,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_180931) do
     t.check_constraint "protocol_version = 1", name: "posture_sessions_protocol_version_is_one"
     t.check_constraint "slouch_seconds <= tracked_seconds", name: "posture_sessions_slouch_within_tracked"
     t.check_constraint "slouch_seconds >= 0 AND slouch_seconds <= '4294967295'::bigint", name: "posture_sessions_slouch_seconds_range"
-    t.check_constraint "state::text = ANY (ARRAY['idle'::character varying, 'calibrating'::character varying, 'upright'::character varying, 'slouching'::character varying, 'sensor_error'::character varying, 'ended'::character varying]::text[])", name: "posture_sessions_state_is_known"
+    t.check_constraint "state::text = ANY (ARRAY['idle'::character varying::text, 'calibrating'::character varying::text, 'upright'::character varying::text, 'slouching'::character varying::text, 'sensor_error'::character varying::text, 'ended'::character varying::text])", name: "posture_sessions_state_is_known"
     t.check_constraint "tracked_seconds >= 0 AND tracked_seconds <= '4294967295'::bigint", name: "posture_sessions_tracked_seconds_range"
   end
 
@@ -71,5 +102,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_180931) do
     t.check_constraint "tracked_seconds >= 0 AND tracked_seconds <= '4294967295'::bigint", name: "posture_snapshots_tracked_seconds_range"
   end
 
+  create_table "users", force: :cascade do |t|
+    t.string "username", null: false
+    t.string "password_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "lower((username)::text)", name: "index_users_on_normalized_username", unique: true
+    t.check_constraint "username::text ~ '^[a-z0-9_]{3,24}$'::text", name: "users_username_format"
+  end
+
+  add_foreign_key "devices", "users"
+  add_foreign_key "group_invitations", "groups"
+  add_foreign_key "group_memberships", "groups"
+  add_foreign_key "group_memberships", "users"
+  add_foreign_key "groups", "users", column: "created_by_user_id"
   add_foreign_key "posture_sessions", "devices"
+  add_foreign_key "posture_sessions", "users"
 end

@@ -1,0 +1,13 @@
+<main class="account-page">
+  <h1>Create your bbl account</h1>
+  <% if @user.errors.any? %><div role="alert"><%= @user.errors.full_messages.to_sentence %></div><% end %>
+  <%= form_with model: @user, url: signup_path do |form| %>
+    <%= form.label :username %><%= form.text_field :username, required: true, autocomplete: "username", minlength: 3, maxlength: 24 %>
+    <p>3–24 letters, numbers, or underscores.</p>
+    <%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "new-password", minlength: 12 %>
+    <p>Use at least 12 characters.</p>
+    <%= form.label :password_confirmation, "Confirm password" %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %>
+    <%= form.submit "Create account" %>
+  <% end %>
+  <p>Already registered? <%= link_to "Log in", login_path %></p>
+</main>

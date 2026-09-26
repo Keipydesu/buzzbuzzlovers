@@ -24,6 +24,9 @@
   </head>
 
   <body>
+    <% if current_user %>
+      <nav class="account-nav" aria-label="Account"><span><%= current_user.username %></span><%= button_to "Log out", logout_path, method: :delete %></nav>
+    <% end %>
     <%= yield %>
   </body>
 </html>

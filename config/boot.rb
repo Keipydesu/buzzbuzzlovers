@@ -5,7 +5,7 @@ ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
 # extension, or transitive dependency to review). Never overrides a variable already
 # set in the real environment. See .env.example for what this project expects.
 dotenv_path = File.expand_path("../.env", __dir__)
-if File.exist?(dotenv_path)
+if ENV["SKIP_DOTENV"] != "1" && ENV["RAILS_ENV"] != "test" && File.exist?(dotenv_path)
   File.foreach(dotenv_path) do |line|
     line = line.strip
     next if line.empty? || line.start_with?("#")

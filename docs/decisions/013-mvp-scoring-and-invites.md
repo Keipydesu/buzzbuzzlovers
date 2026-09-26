@@ -26,3 +26,5 @@ Trust-based scope means no server-side signal is required to detect a member who
 
 - [Social competition direction](011-social-competition-direction.md)
 - [MVP auth and competition scope](012-mvp-auth-and-competition-scope.md)
+
+Implementation defaults for the previously open timing detail are recorded separately in [decision 014](014-weekly-competition-implementation-defaults.md).

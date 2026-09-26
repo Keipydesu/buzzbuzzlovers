@@ -3,7 +3,7 @@ module Api
     class TodayController < BaseController
       def show
         date = Time.current.in_time_zone(demo_timezone).to_date
-        summary = DailySummaryQuery.call(date: date)
+        summary = DailySummaryQuery.call(date: date, sessions: current_user.posture_sessions)
 
         render json: {
           date: date.iso8601,

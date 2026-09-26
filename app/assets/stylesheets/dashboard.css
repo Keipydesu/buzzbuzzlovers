@@ -217,3 +217,8 @@ body { margin: 0; }
 .muse-answer p { margin-top: 12px; }
 .coach-error { border-left: 3px solid var(--gold); padding: 12px; margin-bottom: 16px !important; }
 @media (max-width: 620px) { .competition-hero { padding: 14px; margin: 14px 0; } .competition-heading { gap: 8px; } .competition-heading .subtle-label { max-width: 85px; text-align: right; } .competition-standing { gap: 14px; margin: 14px 0; } .standing-rank { font-size: 32px; } .standing-message h3 { font-size: 14px; } .standing-message p { font-size: 11px; } .competition-actions { gap: 15px; } .competition-actions .group-link { white-space: normal; } .muse-entry { flex-wrap: wrap; } .muse-entry .group-link { margin-left: 0; } }
+
+.invite-link { overflow-wrap: anywhere; }
+.invite-code { font-size: 1.3rem; letter-spacing: .12em; }
+.personal-history { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: .85rem; }
+.personal-history th, .personal-history td { text-align: left; padding: .7rem .25rem; border-bottom: 1px solid var(--border); }

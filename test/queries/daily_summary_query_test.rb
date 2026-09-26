@@ -15,7 +15,7 @@ class DailySummaryQueryTest < ActiveSupport::TestCase
     subscriber = ->(*, payload) { select_count += 1 if payload[:sql].match?(/\ASELECT/i) }
 
     ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
-      DailySummaryQuery.call(date: now.to_date)
+      DailySummaryQuery.call(date: now.to_date, sessions: PostureSession.all)
     end
 
     # A single SELECT reads one consistent Postgres snapshot, so a concurrent
@@ -26,7 +26,7 @@ class DailySummaryQueryTest < ActiveSupport::TestCase
   end
 
   test "empty day returns explicit zeros, not nil sums" do
-    result = DailySummaryQuery.call(date: Date.current)
+    result = DailySummaryQuery.call(date: Date.current, sessions: PostureSession.all)
 
     assert_equal 0, result[:session_count]
     assert_equal 0, result[:tracked_seconds]

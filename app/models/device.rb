@@ -1,4 +1,7 @@
 class Device < ApplicationRecord
+  belongs_to :user, optional: true
+  validate :ownership_cannot_change
+
   self.primary_key = "id"
 
   DEVICE_ID_FORMAT = /\A[0-9a-f]{32}\z/
@@ -7,6 +10,24 @@ class Device < ApplicationRecord
 
   validates :id, presence: true, format: { with: DEVICE_ID_FORMAT }
   validates :first_seen_at, :last_seen_at, presence: true
+
+  # Administrative binding only. Legacy history cannot be attributed implicitly.
+  def self.provision!(device_id:, user:)
+    device = register(device_id).device
+    device.with_lock do
+      return device if device.user_id == user.id
+      raise ArgumentError, "Device is already owned or has unowned history" if device.user_id || device.posture_sessions.exists?
+      device.update!(user: user)
+    end
+    device
+  end
+
+  def ownership_cannot_change
+    return unless persisted? && user_id_changed?
+    if user_id_was.present? || posture_sessions.exists?
+      errors.add(:user_id, "cannot change for an owned device or one with history")
+    end
+  end
 
   Registration = Struct.new(:device, :created, keyword_init: true) do
     def created? = created

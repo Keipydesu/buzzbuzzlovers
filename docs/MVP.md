@@ -136,7 +136,7 @@ These are proposed workstreams, not assignments to named team members. Pair on t
 
 - Native mobile applications and iPhone Bluetooth support.
 - Machine learning or app-side posture classification.
-- Social leaderboards, complex rewards, or a large achievement system.
+- Complex rewards or a large achievement system. Friend-group weekly leaderboards are now in scope under [decisions 011–014](social-competition-implementation-plan.md).
 - Medical diagnosis or claims that the product treats or prevents health conditions.
 - Vibration feedback, cloud raw-sensor streaming, and other hardware features not yet requested.
 

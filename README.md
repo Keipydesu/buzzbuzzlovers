@@ -1,12 +1,14 @@
 # bbl
 
+Account implementation and operator setup: [MVP authentication](docs/authentication-mvp.md).
+
 A HackGT 13 project by team **bbl**: a small wearable that tracks slouching, paired with a mobile-first web dashboard for daily awareness, weekly history, and gamified progress.
 
-Saved for a future iteration: [friend-group competition as a major app experience](docs/decisions/011-social-competition-direction.md), with rankings and an ergonomics-helper idea. Further implementation is paused; scoring and group behavior remain open.
+The app now has username/password accounts, saved friend groups, invite links/codes, weekly slouch-share rankings and a separate most-improved highlight. These changes are local and independently reviewed; see [implementation and limits](docs/social-competition-implementation-plan.md). Rankings refresh from saved data, use Monday–Sunday in the configured app timezone, and trust participants. No-data users are unranked.
 
-The current working UI includes a competition section, a synthetic leaderboard at `/groups`, and an unfinished Muse page at `/coach`. Group creation only changes the preview URL; it does not save memberships or send invitations. Muse is restricted to development/test and requires local `META_MUSE_API_KEY` and `META_MUSE_MODEL` environment variables; no live API call has been verified. Keep credentials out of source control. Earlier UI descriptions below record prior iterations. Before this commit, Ruby lint checks and local Rails GET rendering checks for `/`, `/?preview=empty`, `/groups`, and `/coach` passed; these checks do not validate real competition or AI responses.
+The dashboard shows saved personal totals. The old synthetic half-hour chart is no longer shown as live data. Browser BLE integration remains unfinished. Tiger DB integration is preserved, including accepted snapshot history. The MVP will be demonstrated locally; deployment is deferred. Muse at `/coach` remains development/test-only and needs local API credentials; no live Muse response has been verified. Historical UI descriptions below describe earlier previews.
 
-**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. A sample-data dashboard is available at `/`. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, but accounts, authentication, and device-ownership enrollment — required before any public hosting per [the hosted storage plan](docs/data-storage.md) — are not yet implemented. Browser BLE integration and the live dashboard are not yet complete. The earlier JavaScript prototype has been discarded.
+**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. The authenticated dashboard at `/` displays saved personal and group totals. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, and accounts, authentication, and administrator-provisioned device ownership are implemented. Browser BLE integration and the live dashboard are not yet complete. The earlier JavaScript prototype has been discarded.
 
 ## The idea
 
@@ -95,7 +97,7 @@ DATABASE_URL="$TIGER_DATABASE_URL" bin/rails db:migrate
 
 `db/migrate/..._create_posture_snapshots.rb` converts the table to a TimescaleDB hypertable when the `timescaledb` extension is present (verified against Tiger Cloud, PostgreSQL 18.6 / TimescaleDB 2.30.1 as of September 26, 2026) and otherwise creates an ordinary table, so the same migration and model are exercised by the local Minitest suite (`bin/rails test`, unaffected, no `DATABASE_URL` needed) and by Tiger Cloud. `config.active_record.dump_schema_after_migration` is disabled (`config/application.rb`) specifically because this dual-target setup would otherwise bake Tiger Cloud's extensions into the committed `db/schema.rb` and break local `db:test:prepare`; run `bin/rails db:schema:dump` explicitly (with `DATABASE_URL` unset) after a local migration to update it.
 
-This is implementation-sequence step 4 from [data-storage.md](docs/data-storage.md) — the hypertable and `Snapshots::Ingest` history writes only, verified end-to-end (accepted snapshot → session row → one history row in an actual hypertable chunk) against an isolated Tiger Cloud dev instance with `sslmode=require`. Accounts, `user_id` ownership columns, `sslmode=verify-full`, and everything else the doc gates on remain not implemented.
+This is implementation-sequence step 4 from [data-storage.md](docs/data-storage.md) — the hypertable and `Snapshots::Ingest` history writes only, verified end-to-end (accepted snapshot → session row → one history row in an actual hypertable chunk) against an isolated Tiger Cloud dev instance with `sslmode=require`. Account ownership now lives on devices and canonical sessions. History remains linked through its canonical session. TLS certificate verification and the remaining operational gates must match the deployed service configuration; they were not revalidated against live data in this integration.
 
 ## Browser constraint
 
@@ -106,3 +108,9 @@ References: [Chrome Web Bluetooth documentation](https://developer.chrome.com/do
 The [compact mobile layout](docs/decisions/009-compact-goal-above-today.md) removes the overview introduction and keeps today’s totals visible without scrolling at 320 × 568.
 
 The goal now illustrates [slouch reduction](docs/decisions/010-reward-slouch-reduction.md), comparing slouch share with previous recorded days. Its 20% target is provisional; the older tracking-duration API challenge is not connected to the mockup.
+
+
+
+### Local MVP demo
+
+The immediate target is a loopback-only demo, not production deployment. See [local demo setup](docs/local-demo.md). The merged Tiger DB/hypertable implementation remains available when explicitly selected; local development and tests use ordinary PostgreSQL. Production Docker/Kamal configuration is deferred.

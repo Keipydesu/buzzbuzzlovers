@@ -1,6 +1,7 @@
 module Api
   module V1
     class BaseController < ActionController::Base
+      include Authentication
       class ApiError < StandardError
         attr_reader :status, :code, :message_text, :session
 
@@ -64,6 +65,10 @@ module Api
         body = { error: { code: code, message: message } }
         body[:session] = session if session
         render json: body, status: status
+      end
+
+      def require_authentication
+        render_error(status: :unauthorized, code: "unauthorized", message: "Log in to continue") unless current_user
       end
 
       def demo_timezone
