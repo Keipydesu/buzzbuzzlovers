@@ -1,0 +1,13 @@
+.tracker .wearable-panel { margin-top: 20px; }
+.tracker .wearable-panel h2 { font-size: 18px; margin-bottom: 12px; }
+.tracker .wearable-panel p { margin-top: 10px; overflow-wrap: anywhere; }
+.tracker .wearable-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.tracker .wearable-actions button { cursor: pointer; min-height: 44px; margin: 0; }
+.tracker .wearable-actions .group-link { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.tracker .wearable-actions button:disabled { opacity: .5; cursor: default; }
+.tracker .wearable-actions button[hidden], .tracker [hidden] { display: none; }
+.tracker .wearable-identity { font-family: monospace; font-size: 11px; color: var(--muted); }
+.tracker .wearable-posture { font-weight: 600; }
+.tracker .fixture-banner { background: var(--gold); color: #051e39; font-weight: 700; padding: 10px; }
+.tracker .wearable-panel [role="status"] { font-size: 13px; }
+.tracker .session-metrics p > [data-device-target] { font-size: inherit; color: inherit; margin: 0; }

@@ -81,7 +81,7 @@ test('zero-duration saved sessions differ from missing history and joining inclu
   await login(page);
   expect((await upload(page, { tracked: 0, slouch: 0, episodes: 0 })).ok()).toBe(true);
   await page.reload();
-  await expect(page.getByText('No saved activity today.')).toHaveCount(0);
+  await expect(page.getByText('No saved activity today.')).not.toBeVisible();
   await expect(page.locator('.personal-history tbody tr').last().getByRole('cell')).toHaveText(['0.0', '0.0']);
   const group = await createGroup(page);
   await expect(page.locator('.ranking-you .member-score')).toHaveText('Unranked');

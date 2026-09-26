@@ -1,5 +1,7 @@
 # App plan (Rails + browser)
 
+Current integration reference (2026-09-26): [hardware integration plan](hardware-integration-plan.md), [BLE source contract](ble-protocol.md), and [current API](app-api.md). Firmware now exists under `Hardware/`; accounts, ownership, canonical sessions, and atomic accepted history are implemented in Rails. The immediate target is the local demo; the browser adapter is implemented with automated fixture coverage; physical device validation remains pending. Historical proposals below are superseded where they describe absent hardware/accounts/history or public hosting as the immediate milestone.
+
 **Status: architecture proposal; Rails persistence/API scaffold under review, hosted integration not implemented.** Scope is the app side only: the browser BLE adapter and the Rails web app. Wire-level BLE fields, UUIDs, and encoding are defined in [ble-protocol.md](ble-protocol.md) and are not repeated here except where the app-side contract depends on them. See [ROADMAP.md](ROADMAP.md) for how this fits the overall sequencing (this document is Phase 3 + Phase 4 detail).
 
 The ESP32 owns all posture classification. Nothing here recomputes posture state from raw sensor data; the app only stores and displays values the device already calculated.

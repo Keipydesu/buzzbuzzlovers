@@ -1,6 +1,12 @@
 {
   "name": "bbl-browser-tests",
   "private": true,
-  "scripts": { "test:e2e": "playwright test", "test:e2e:report": "playwright show-report" },
-  "devDependencies": { "@playwright/test": "1.58.2" }
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report",
+    "test:ble": "node --test test/javascript/*.test.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2"
+  }
 }

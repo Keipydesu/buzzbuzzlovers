@@ -1,72 +1,91 @@
-# BLE telemetry proposal
+# BLE telemetry and browser mapping
 
-**Status: draft for review, not an approved or implemented contract.** This specifies calculated results only. Firmware owns posture classification; the browser decodes values and forwards them to Rails. See [MVP.md](MVP.md) and [ROADMAP.md](ROADMAP.md) for scope decisions.
+**Status: current checked-in firmware interface, source-reviewed on 2026-09-26; browser integration has automated fixture coverage; physical transport has not been verified.** [Decision 016](decisions/016-integrate-existing-hardware.md) uses the existing firmware as the baseline. The ESP32 owns calibration, posture classification, and episode timing. The browser decodes and transports calculated results to the [Rails API](app-api.md). Follow the [integration plan](hardware-integration-plan.md) for implementation and acceptance gates.
 
-## Proposed service
+## Source and service
 
-Use these project-specific 128-bit UUIDs consistently if this proposal is accepted:
+The integration target is [slouch_detector.ino](../Hardware/slouch_detector/slouch_detector.ino). The [read-all-data sketch](../Hardware/read_all_data/read_all_data.ino) and [I2C scanner](../Hardware/i2c_scanner/i2c_scanner.ino) are serial diagnostics, not additional BLE feeds. The tracked directory is `Hardware/` with nested sketch directories; use this casing on case-sensitive systems.
+
+The detector initializes a BNO055 at I2C address `0x28`, SDA `21`, SCL `22`, in `OPERATION_MODE_IMUPLUS`. It reads Euler `orientation.z` for pitch, uses BOOT GPIO `0` for calibration and LED GPIO `17` for warning. Exact board, mounting, power, library versions, and physical reliability still require verification. No raw pitch, calibration baseline, LED state, battery, wall clock, or episode timestamps are included in BLE telemetry.
 
 | Item | UUID | Properties |
 | --- | --- | --- |
-| Posture service | `caa153e1-8bec-412c-a7ea-570bf12cbd13` | Advertised service |
-| Device identity | `5a02ab16-022f-43a7-8b81-2d136526c605` | Read |
-| Session snapshot | `3ea72a7d-ef99-4f43-95d7-d6860687824e` | Read, Notify |
+| Posture service | `caa153e1-8bec-412c-a7ea-570bf12cbd13` | Advertised as `bbl-posture` |
+| Device identity | `5a02ab16-022f-43a7-8b81-2d136526c605` | Read, exactly 16 bytes |
+| Session snapshot | `3ea72a7d-ef99-4f43-95d7-d6860687824e` | Read, Notify, exactly 20 bytes |
 
-Identity is 16 opaque bytes generated once and persisted on the device. Convert bytes in wire order to 32 lowercase hexadecimal characters for the Rails key. Do not use the Bluetooth display name as identity. Identity is an identifier, not an authentication credential.
-
-The browser filters discovery by service UUID, reads identity, subscribes to notifications, and reads the current snapshot. Bind callbacks to that connection's identity; discard callbacks after the connection is replaced. Reads and notifications share the same ordering rules.
-
-Chrome supports reading characteristics and receiving GATT notifications through Web Bluetooth. Pairing must follow a user gesture and use a secure context. Verify support on the team's actual laptops before committing to this path. [Chrome documentation](https://developer.chrome.com/docs/capabilities/bluetooth)
+There is no write/command characteristic. Identity is generated with `esp_fill_random` and stored with the session counter in Preferences namespace `bbl` (`id`, `sess`). The source regenerates identity when the session key is missing or the stored identity length is wrong. Convert bytes in wire order to 32 lowercase hex characters; do not use the Bluetooth name, browser Bluetooth ID, or UUID-endian formatting as the Rails identity. Identity is public, not an ownership credential. Preferences write success is not checked by this sketch, so power-loss durability is an assumption to test, not a guarantee.
 
 ## Snapshot encoding
 
-Exactly **20 bytes**, with unsigned multi-byte integers encoded little-endian. Reject other lengths or unsupported versions. This compact layout avoids relying on large messages or application-level fragmentation; verify transport behavior on the selected firmware stack.
+All multi-byte fields are **unsigned, little-endian**. Reject lengths other than 20, unsupported versions, and unknown states. Use `DataView.getUint32(offset, true)` / `getUint16(offset, true)` rather than signed bitwise assembly; all wire integers fit exactly in JavaScript numbers.
 
-| Byte offset | Type | Field | Meaning |
+| Offset | Type | Firmware field | HTTP mapping |
 | --- | --- | --- | --- |
-| 0 | uint8 | version | `1` |
-| 1 | uint8 | state | Enum below |
-| 2 | uint32 | session_id | Persisted, increasing session counter; `0` reserved for no session |
-| 6 | uint32 | sequence | Increasing snapshot revision within this session |
-| 10 | uint32 | tracked_seconds | Cumulative valid, classified tracking time |
-| 14 | uint32 | slouch_seconds | Cumulative detected slouch time |
-| 18 | uint16 | episode_count | Cumulative number of detected episodes |
+| 0 | uint8 | version = `1` | `snapshot.protocol_version` |
+| 1 | uint8 | state enum | `snapshot.state`, map below |
+| 2 | uint32 | session_id | URL `:device_session_id`; `0` is display-only |
+| 6 | uint32 | sequence | `snapshot.sequence` |
+| 10 | uint32 | tracked_seconds | `snapshot.tracked_seconds` |
+| 14 | uint32 | slouch_seconds | `snapshot.slouch_seconds` |
+| 18 | uint16 | episode_count | `snapshot.episode_count` |
 
-Proposed states: `0` idle, `1` calibrating, `2` upright, `3` slouching, `4` sensor error, `5` ended. Unknown values are rejected. Before the first session, identity remains readable and the snapshot uses session `0`, state idle, and zero counters. Session `0` is never ingested as activity.
+| Code | API string | Source behavior |
+| --- | --- | --- |
+| 0 | `idle` | Waiting for first calibration; no tracked time |
+| 1 | `calibrating` | BOOT-triggered baseline capture; no tracked time |
+| 2 | `upright` | Not forward beyond threshold; tracked time accumulates |
+| 3 | `slouching` | Forward beyond threshold, even before episode qualification; tracked and slouch time accumulate |
+| 4 | `sensor_error` | Sensor check failed; tracking pauses after detection; may occur with session `0` at boot |
+| 5 | `ended` | Currently reached only when another qualifying episode would overflow episode count |
 
-Track time internally at firmware precision; transmit cumulative whole seconds rounded down. No tracking time accumulates during calibration or sensor failure. Require `slouch_seconds <= tracked_seconds`; all counters must be nondecreasing within a session. An episode qualifies only after a continuously detected slouch lasts **more than 60 seconds**, and is counted once per sustained episode; see [decision 006](decisions/006-one-minute-slouch-qualification.md). This is an accepted requirement, not implemented firmware. The detection proposal must still define treatment of the initial persistence window and interruptions during an episode.
+In normal operation sequence starts at `1` after allocating a positive session. Session `0` snapshots also have a heartbeat sequence, but no activity counters; display their state without calling Rails ingestion. The source can publish session `0` with `sensor_error`, not only `idle`.
 
-## Publication and lifecycle
+## Measurement semantics
 
-- Propose one snapshot per second while connected, plus state-change updates. This is a transfer rate, not the sensor sampling rate.
-- Increment sequence for each newly published snapshot, including periodic heartbeats. Reading the same cached snapshot does not increment it. Publish fields atomically so one packet represents one consistent revision.
-- Allocate and persist a new nonzero session ID before starting a session; never reuse it under the same device identity. Start sequence at `1` for each session.
-- A reboot must not resume a session with reset counters. Allocate a new session when tracking restarts. Regenerate device identity if its session-counter storage is erased.
-- Do not wrap or saturate counters silently. End tracking before a counter would overflow; session-ID exhaustion requires a new identity. The completed session is immutable.
-- Calibration, start, and end triggers are unresolved: physical controls versus a separately specified write characteristic. This proposal does not define browser command behavior.
+The current sketch uses wrapped angle difference from its captured upright baseline. A difference strictly below `-10` degrees is forward slouching; leaning back and exactly `-10` are not. These are code settings, not validated ergonomic thresholds. The app must not reclassify angles or apply independent persistence filters.
 
-## Browser and Rails reconciliation
+- Nominal loop delay is 100 ms plus sensor/serial/other work. Each loop credits elapsed milliseconds to the preceding posture state, then evaluates the sensor. Transmitted totals are floored whole seconds. This is sampled interval accounting; it does not locate a transition within a sample interval.
+- `tracked_seconds` accumulates in upright/slouching states; `slouch_seconds` accumulates in slouching state immediately, including short leans that never become episodes. `slouch_seconds <= tracked_seconds` must hold.
+- An episode increments once only after **more than 60,000 ms** of continuous forward slouch. Exactly 60 seconds is insufficient. A return to the non-slouch range resets the candidate immediately; calibration or classified sensor error clears detection. This implements [decision 006](decisions/006-one-minute-slouch-qualification.md) in source, without proving physical accuracy.
+- LED warning starts after 10 seconds and clears after 3 continuous seconds of recovery. This warning timer is separate from the episode timer; the browser cannot infer LED status from the episode count.
+- Calibration waits roughly 1 second to settle, then averages readings over the following 3 seconds. Recalibration preserves the existing session and counters. Sensor loss during calibration can leave it calibrating and later use too few or pre-gap samples. Recovery from a mid-session sensor error reuses the old baseline.
 
-Key sessions by `(device_id, session_id)`. Atomically accept an update only if `sequence` exceeds the stored revision and counters satisfy the invariants. Replace cumulative totals; never add complete snapshots together. Ignore older or identical revisions, and report equal revisions with different contents as a protocol error. Once ended, reject further activity for that session.
+The resulting UI labels should distinguish “slouch time” from “episodes over 60 seconds.” A nonzero slouch duration with zero episodes is valid. Neither field establishes medically correct posture.
 
-The browser uses the same checks for live display. After three seconds without a fresh heartbeat, propose a stale indicator; a disconnection is immediate. Neither stale nor disconnected means upright, ended, or zero activity. Rails receipt time is transport metadata, not proof of when posture activity occurred.
+## Publication and session lifecycle
+
+`publish()` updates the cached characteristic, increments sequence, and notifies if connected, approximately once per second plus state changes. Publication continues while disconnected. Reads of the cached value do not increment sequence. BOOT handling waits synchronously for release, so holding it pauses publications and sampling; a browser stale warning may therefore occur without a link disconnect.
+
+On first calibration after boot, the firmware increments and attempts to persist a session counter, clears in-memory measurement counters, and publishes the new session beginning at revision 1. Recalibration remains in the same session. Reboot discards the RAM session and totals, returning to pre-session status; next calibration normally allocates a new session. There is no retained session archive, application-level acknowledgement, or ordinary end control. Disconnect is never an end event. A missed previous session cannot be recovered after reboot.
+
+The source only guards episode-count overflow. Sequence increment, session allocation and uint32 duration conversion can wrap; flash operations are unchecked. The browser must reject regressions/reuse rather than fabricate corrected counters or identities. These limits should be tested/documented for the demo, with firmware hardening considered separately. Source compatibility does not prove unbounded-duration reliability.
+
+After reaching `ended`, the sketch continues publishing higher sequence numbers with unchanged counters. Rails deliberately treats a stored ended session as immutable. The browser adapter latches the first observed terminal snapshot and retries that exact payload, then suppresses further terminal uploads if version, state, and counters are unchanged. It still observes BLE liveness. A later state/counter change is a protocol error. Reload/concurrent-tab handling compares authorized server state as specified in [the API adaptation rules](app-api.md#adaptation-to-the-current-firmware); do not change measured fields or weaken backend reconciliation.
+
+## Browser transport and ordering
+
+On a user click, discover by service UUID, connect GATT, read/validate identity, attach the snapshot handler, subscribe, then read the cached snapshot. Serialize GATT operations and feed reads/notifications into the same ordering path. A notification that arrives during the read may already be newer. Bind all callbacks to the active connection generation and identity; invalidate them at disconnect/account change. Reconnect obtains fresh services/characteristics and repeats subscription/read setup.
+
+Web Bluetooth requires a secure context and user-initiated discovery. Check `window.isSecureContext` and `navigator.bluetooth`, and verify the exact demo laptop/browser with the real device. A responsive page alone does not establish Bluetooth support. [Chrome Web Bluetooth documentation](https://developer.chrome.com/docs/capabilities/bluetooth).
+
+Key cumulative state by `(device_id, session_id)`. Reject invalid ranges, counter regressions, and equal-revision conflicting payloads. Ignore stale/identical readings without replacing newer live state. Track the active session independently from pending older-session uploads. No new valid revision for 3 seconds marks tracking stale; disconnection is immediate. Stale/disconnected/error never means upright, zero activity, or ended. After tab suspension, show unknown freshness until a fresh read/heartbeat; an ended session remains ended with separate link status.
 
 ## Reconnection and calendar limits
 
-Reading the latest cumulative snapshot can recover totals for the **same still-retained session** after missing notifications. It cannot recover an overwritten session, reconstruct individual episodes, or assign unseen activity to calendar days. A lost final snapshot must leave a session incomplete unless it can be retrieved later.
+Same-session reconnect can recover current cumulative totals retained in RAM despite missed notifications. It cannot recover overwritten sessions, identify individual episode timestamps, split activity across midnight, or reconstruct coverage from server receipt times. Saved partial sessions remain incomplete unless the device actually reports ended.
 
-Before claiming disconnected or all-day history, agree on retention capacity, final-record acknowledgment, restart recovery, timestamp synchronization, and per-day records. These require additional protocol work beyond this telemetry draft.
+Use the current first-observed-date grouping: the browser captures an observation timestamp for each positive session; Rails freezes it and the configured timezone at first insert. Label personal totals “Sessions by first-seen date.” A late first observation is not the device's start time. No half-hour episode chart or accurate per-day activity split can be produced from this payload. Durable browser outbox, device history, time synchronization, and browser commands remain separate extensions.
 
-For a connected demo, one proposed simplification is to group each session under its browser-observed start date and label the chart accordingly. This is not accurate calendar-day accounting for midnight-spanning sessions or sessions first observed late. Decide between that explicitly limited demo and genuine per-day buckets before implementing weekly aggregation. Never silently label receipt-day totals as measured daily activity.
+## Review fixtures and verification
 
-## Review fixtures and remaining gates
+The following are synthetic fixtures, not captured hardware readings:
 
-Agree on fixtures for these cases before implementation:
+| Purpose | Bytes / expected values |
+| --- | --- |
+| Realistic integration example | `01 03 07 00 00 00 b5 00 00 00 b4 00 00 00 46 00 00 00 01 00`: v1, slouching, session 7, revision 181, tracked 180, slouch 70, episodes 1 |
+| Pre-session sensor failure | `01 04 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00`: display sensor error, do not upload |
+| Historical layout-only fixture | `01 02 07 00 00 00 0c 00 00 00 3c 00 00 00 0a 00 00 00 02 00`: upright, session 7, revision 12, tracked 60, slouch 10, episodes 2. Byte-valid, but physically inconsistent with >60-second episode qualification; do not present as real demo activity |
+| Unsigned range check | `01 02 ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 80 ff ff`: session/revision/tracked = 4294967295, slouch = 2147483648, episodes = 65535; parser boundary only, not a source-reachable longevity claim |
 
-- Version `1`, upright, session `7`, sequence `12`, tracked `60`, slouch `10`, episodes `2` decodes from `01 02 07 00 00 00 0c 00 00 00 3c 00 00 00 0a 00 00 00 02 00`.
-- Duplicate, out-of-order, and conflicting equal-sequence packets do not inflate totals.
-- Unsupported versions, invalid states, truncated packets, decreasing counters, and slouch time exceeding tracked time are rejected.
-- Same-session reconnect preserves totals; a new session does not inherit the old counters.
-- Sensor errors, stale data, reboot, lost final packets, and midnight crossing produce explicit, testable behavior.
-
-Confirm the laptop/browser, firmware stack, command controls, storage/sync scope, calendar policy, and access model before treating this document as the v1 contract. No hardware testing or browser integration has been performed yet.
+Python `struct` with `<BBIIIIH` independently verified these 20-byte layouts during documentation review. This is not firmware compilation or a BLE capture. Future tests must cover wrong lengths/version/state, equal conflicts, duplicates/stale data, decreasing counters, unsigned bounds, session-zero error, recalibration, reboot, terminal repeats/reload races, disconnect versus HTTP failure, and real below/exactly/above-60-second sensor trials. Record board, firmware/core/library versions, laptop/OS/browser, observed packets, and limitations during physical acceptance.

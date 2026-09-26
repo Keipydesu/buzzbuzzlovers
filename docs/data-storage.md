@@ -1,5 +1,7 @@
 # Hosted storage and Tiger Data integration
 
+Current integration reference (2026-09-26): [hardware integration plan](hardware-integration-plan.md), [BLE source contract](ble-protocol.md), and [current API](app-api.md). Firmware now exists under `Hardware/`; accounts, ownership, canonical sessions, and atomic accepted history are implemented in Rails. The immediate target is the local demo; the browser adapter is implemented with automated fixture coverage; physical device validation remains pending. Historical proposals below are superseded where they describe absent hardware/accounts/history or public hosting as the immediate milestone.
+
 **Status: integration proposal, not implemented.** The confirmed direction is online storage for users with Tiger Data hypertables. Recommend managed Tiger Cloud PostgreSQL with TimescaleDB and hosted Rails; provider tier, region, Rails host, authentication implementation, versions, and retention settings remain open. This supersedes the local-only deployment target in earlier plans. The existing no-login scaffold remains a local prototype until the gates below pass.
 
 ## Purpose and boundaries
