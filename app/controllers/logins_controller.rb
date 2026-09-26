@@ -12,7 +12,7 @@ class LoginsController < ApplicationController
     user = User.authenticate_by(username: username.strip.downcase, password: password) if username.is_a?(String) && password.is_a?(String)
     if user
       start_session(user)
-      redirect_to root_path, status: :see_other
+      redirect_to after_login_path, status: :see_other
     else
       flash.now[:alert] = "Username or password is incorrect."
       render :new, status: :unprocessable_entity

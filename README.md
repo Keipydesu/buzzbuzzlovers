@@ -4,9 +4,9 @@ Account implementation and operator setup: [MVP authentication](docs/authenticat
 
 A HackGT 13 project by team **bbl**: a small wearable that tracks slouching, paired with a mobile-first web dashboard for daily awareness, weekly history, and gamified progress.
 
-Saved for a future iteration: [friend-group competition as a major app experience](docs/decisions/011-social-competition-direction.md), with rankings and an ergonomics-helper idea. Further implementation is paused; scoring and group behavior remain open.
+The app now has username/password accounts, saved friend groups, invite links/codes, weekly slouch-share rankings and a separate most-improved highlight. These changes are local and independently reviewed; see [implementation and limits](docs/social-competition-implementation-plan.md). Rankings refresh from saved data, use Monday–Sunday in the configured app timezone, and trust participants. No-data users are unranked.
 
-The current working UI includes a competition section, a synthetic leaderboard at `/groups`, and an unfinished Muse page at `/coach`. Group creation only changes the preview URL; it does not save memberships or send invitations. Muse is restricted to development/test and requires local `META_MUSE_API_KEY` and `META_MUSE_MODEL` environment variables; no live API call has been verified. Keep credentials out of source control. Earlier UI descriptions below record prior iterations. Before this commit, Ruby lint checks and local Rails GET rendering checks for `/`, `/?preview=empty`, `/groups`, and `/coach` passed; these checks do not validate real competition or AI responses.
+The dashboard shows saved personal totals. The old synthetic half-hour chart is no longer shown as live data. Browser BLE integration and hosted Tiger Data remain unfinished. Muse at `/coach` remains development/test-only and needs local API credentials; no live Muse response has been verified. Historical UI descriptions below describe earlier previews.
 
 **Status: Rails scaffold under review; dashboard preview available; hosted integration planned.** The current PR contains persistence/API code. A sample-data dashboard is available at `/`. Browser BLE integration, the live dashboard, and Tiger Data integration are not yet complete. The earlier JavaScript prototype has been discarded.
 

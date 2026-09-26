@@ -4,9 +4,9 @@ Status: draft, under active discussion. This sequences the proposals in [MVP.md]
 
 ## Current status and priorities
 
-The Rails persistence/API scaffold is under review in PR #1; it is not a completed hosted release. The dependency safety policy is documented. Account isolation, browser integration, and Tiger Data storage are not implemented. Read relevant numbered records in `docs/decisions/` before planning; there is no separate decision index.
+PR #1 is merged. Username/password authentication and account-scoped API access are implemented locally and independently reviewed. Saved friend groups, link/code joining, and weekly rankings are implemented locally and independently reviewed; see [the competition implementation](social-competition-implementation-plan.md). Browser BLE integration and Tiger Data storage remain unimplemented.
 
-Current order: resolve PR correctness findings, confirm hosted account/enrollment and infrastructure choices, implement isolated and authenticated storage with atomic snapshot history, then finish browser/dashboard integration and rehearse the demo. The phase sections below group workstreams rather than implying that every earlier item has landed.
+Current order: finish competition review, confirm hosted account/enrollment and infrastructure choices, implement isolated and authenticated storage with atomic snapshot history, then finish browser/dashboard integration and rehearse the demo. The phase sections below group workstreams rather than implying that every earlier item has landed.
 
 Public-release blockers: authentication and verified device ownership, tenant-scoped reads/writes, secure hosting/database connections, ingestion correctness, dependency review, and agreed retention/recovery/budget. Durable browser outbox, accurate cross-midnight history, device transfers, continuous aggregates, and columnstore optimization remain deferred unless separately approved. Follow [data-storage.md](data-storage.md) for acceptance checks.
 
@@ -90,4 +90,4 @@ Re-verify each item in MVP.md's "Demo acceptance criteria" section against the w
 
 ## Out of scope for this roadmap
 
-Everything listed under MVP.md's "Outside the first proposed scope" (native apps, ML classification, leaderboards, medical claims, vibration/cloud streaming) stays out until the core loop above is demoed.
+Friend-group leaderboards are now in scope under decisions 011–014. Native apps, ML classification, medical claims, vibration/cloud streaming, advanced rewards and anti-cheat remain outside this MVP.

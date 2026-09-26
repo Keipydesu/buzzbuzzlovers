@@ -1,0 +1,2 @@
+<header class="topbar"><%= link_to "bbl.", root_path, class: "brand" %><button type="button" class="theme-button" data-theme-target="button" data-action="theme#toggle" aria-label="Switch to light mode">☀ Light mode</button></header>
+<% unless current_page?(root_path) %><%= link_to "← Your tracking", root_path, class: "back-link" %><% end %>

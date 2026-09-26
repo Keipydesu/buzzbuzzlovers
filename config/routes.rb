@@ -16,7 +16,11 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   root "dashboard#show"
-  get "groups", to: "groups#show", as: :groups
+  get "groups/join/:code", to: "group_invitations#show", as: :group_invitation
+  post "groups/join", to: "group_invitations#create", as: :join_group
+  resources :groups, only: %i[index create show] do
+    delete :leave, on: :member
+  end
   get "coach", to: "coach#show", as: :coach
   post "coach", to: "coach#create"
 

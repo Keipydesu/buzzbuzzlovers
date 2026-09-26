@@ -20,8 +20,15 @@ module Authentication
     redirect_to login_path unless current_user
   end
 
+  def after_login_path
+    code = session.delete(:invitation_code)
+    code.present? ? group_invitation_path(code: code) : root_path
+  end
+
   def start_session(user)
+    invitation_code = session[:invitation_code]
     reset_session
+    session[:invitation_code] = invitation_code
     session[:user_id] = user.id
     session[:signed_in_at] = Time.current.to_i
     @current_user = user

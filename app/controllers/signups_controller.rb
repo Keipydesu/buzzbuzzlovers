@@ -11,7 +11,7 @@ class SignupsController < ApplicationController
     @user = User.new(params.expect(user: [ :username, :password, :password_confirmation ]))
     if @user.save
       start_session(@user)
-      redirect_to root_path, status: :see_other
+      redirect_to after_login_path, status: :see_other
     else
       render :new, status: :unprocessable_entity
     end

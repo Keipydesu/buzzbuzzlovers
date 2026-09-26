@@ -1,0 +1,12 @@
+<main class="account-page">
+  <h1>Join <%= @invitation.group.name %></h1>
+  <p>Share your username, weekly slouch share, recorded time, and improvement with this group.</p>
+  <% if current_user %>
+    <%= form_with url: join_group_path do |form| %>
+      <%= form.hidden_field :code, value: @invitation.code %>
+      <%= form.submit "Join group" %>
+    <% end %>
+  <% else %>
+    <p><%= link_to "Log in", login_path %> or <%= link_to "create an account", signup_path %> to join.</p>
+  <% end %>
+</main>
