@@ -43,6 +43,8 @@ For the software work, read [the app plan](docs/APP_PLAN.md) and [the app API pr
 
 ## Development
 
+Use established, security-reviewed gems and other dependencies. Avoid brand-new packages and releases without substantial independent scrutiny, and review provenance, advisories, and transitive changes before adoption. See [the dependency safety policy](docs/dependency-safety.md) for required checks and review evidence.
+
 There are no installation or run commands yet. Agree on the remaining hardware and software choices before scaffolding the Rails app or firmware.
 
 ## Browser constraint

@@ -8,6 +8,8 @@ The ESP32 owns all posture classification. Nothing here recomputes posture state
 
 Ruby on Rails is the confirmed preference. Recommend a conventional Rails app with ERB views, Turbo navigation, Stimulus for the BLE adapter and chart updates, PostgreSQL for persistence, and Tailwind CSS for responsive styling. These supporting choices and exact versions are proposals, not installed dependencies. Keep one Rails app; the browser receives live BLE data directly, so a separate frontend service or push server is unnecessary for the initial journey.
 
+All stack selections, scaffold-generated gems, and later dependency updates must satisfy [the dependency safety policy](dependency-safety.md). Select established dependencies and supported versions with documented security review; do not default to brand-new packages or unreviewed latest releases. Review direct and transitive dependencies before installation, commit the resulting lockfiles, and record audit tooling and commands when implementation begins.
+
 Proposed source organization once implementation is authorized:
 
 ```text

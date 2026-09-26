@@ -10,6 +10,12 @@ The ESP32 performs calibration, posture classification, and episode timing local
 
 Rails is the preferred framework. Database, frontend tooling, hardware, and deployment choices remain open. Keep proposals distinct from confirmed decisions. Do not scaffold applications or restore the discarded JavaScript prototype without a request to begin implementation.
 
+## Dependency Safety
+
+Use only established dependencies whose provenance, maintenance history, and security have been reviewed. This applies to Ruby gems, their transitive dependencies, and any JavaScript/npm packages or other third-party libraries introduced later. Do not choose brand-new packages or newly released versions without substantial independent scrutiny merely because they are latest or convenient. A familiar name, download count, or clean vulnerability scan alone does not establish safety.
+
+Follow [the dependency safety policy](docs/dependency-safety.md) before installing, adding, or updating dependencies. Prefer supported, vetted versions; record review evidence in dependency PRs, commit lockfiles, and inspect transitive changes. If safety cannot be established, do not install or adopt the dependency. Security fixes require prompt review rather than a blanket waiting period.
+
 ## Build, Test, and Development Commands
 
 There are no build, install, development-server, or automated-test commands yet. For documentation changes, run:

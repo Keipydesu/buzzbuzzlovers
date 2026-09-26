@@ -17,6 +17,7 @@ Close the relevant gates before implementing each workstream. Documentation and 
 - [ ] Calibration/start/end controls: physical device controls or browser commands
 - [ ] Session clock anchor, timezone, and treatment of sessions spanning midnight; cumulative totals alone do not encode calendar history
 - [ ] Rails tooling, database, hosting, and single-profile versus account-based access
+- [ ] Vet selected gems and other dependencies under [the dependency safety policy](dependency-safety.md), including exact versions, provenance, independent scrutiny, advisories, and transitive dependencies before installation
 
 Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the contract. UUIDs and encoding there are proposed, not frozen. The telemetry layout can be reviewed independently of sensor thresholds; the hardware must be selected before wiring or validating detection.
 
