@@ -48,12 +48,14 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 
 ## Phase 3 — Rails and data
 
-*Owner: TBD (proposed: claude)*
+*Documentation review: claude. Implementation: team owner TBD.*
 
 - [ ] Scaffold Rails app (framework choices: Hotwire/Stimulus, PostgreSQL, Tailwind — confirm before scaffolding)
-- [ ] Session persistence model (session id, device id, start/end, totals)
-- [ ] Ingestion endpoint from browser-side BLE client
-- [ ] Daily and weekly aggregation, computed only from recorded tracking time
+- [ ] Session persistence model keyed on `(device_id, session_id)`, storing the latest accepted `sequence` and the snapshot fields from [ble-protocol.md](ble-protocol.md), plus receipt metadata and the clock anchor/timezone selected by the calendar policy; do not equate server receipt time with the actual session start
+- [ ] Ingestion endpoint from browser-side BLE client: atomically accept an update only if `sequence` exceeds the stored value for that session and the snapshot invariants hold (`slouch_seconds <= tracked_seconds`, nondecreasing counters); ignore stale/identical updates, report conflicting equal-sequence payloads or invalid snapshots, and never add complete cumulative snapshots together
+- [ ] Reject activity for session `0` and for any session already marked ended
+- [ ] Decide and document the calendar policy from ble-protocol.md's "Reconnection and calendar limits": either the labeled browser-observed-start-date simplification, or genuine per-day buckets (needs additional protocol work first). Do not present the simplified version as measured daily activity in the UI copy
+- [ ] Daily and weekly aggregation, computed only from recorded tracking time and the agreed calendar policy
 - [ ] Daily challenge / reward rule (mechanics TBD, see MVP.md open decision 7)
 
 ## Phase 4 — Interface and demo
