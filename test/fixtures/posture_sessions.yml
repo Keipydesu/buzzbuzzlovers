@@ -1,0 +1,4 @@
+# Intentionally empty: sessions are created explicitly in each test via
+# Snapshots::Ingest, since fixture rows would need to satisfy DB check
+# constraints (state enum, counter ranges, slouch<=tracked) that placeholder
+# fixture data cannot.

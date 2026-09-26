@@ -1,0 +1,3 @@
+# Intentionally empty: devices are created explicitly in each test via
+# Device.register, since fixture rows would need to satisfy DB check
+# constraints (hex id format) that placeholder fixture data cannot.

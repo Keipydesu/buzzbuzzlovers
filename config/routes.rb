@@ -11,4 +11,19 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  namespace :api do
+    namespace :v1 do
+      resources :devices, only: %i[index create]
+
+      get "devices/:device_id/session", to: "sessions#show",
+        constraints: { device_id: /[0-9a-f]{32}/ }, as: :device_session
+
+      put "devices/:device_id/sessions/:device_session_id/snapshot", to: "snapshots#update",
+        constraints: { device_id: /[0-9a-f]{32}/, device_session_id: /\d+/ }, as: :device_session_snapshot
+
+      get "today", to: "today#show"
+      get "weekly", to: "weekly#show"
+    end
+  end
 end
