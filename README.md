@@ -8,9 +8,9 @@ A HackGT 13 project by team **bbl**: a small wearable that tracks slouching, pai
 
 The app now has username/password accounts, saved friend groups, invite links/codes, weekly slouch-share rankings and a separate most-improved highlight. These changes are local and independently reviewed; see [implementation and limits](docs/social-competition-implementation-plan.md). Rankings refresh from saved data, use Monday–Sunday in the configured app timezone, and trust participants. No-data users are unranked.
 
-The dashboard shows saved personal totals. The old synthetic half-hour chart is no longer shown as live data. Browser BLE integration remains unfinished. Tiger DB integration is preserved, including accepted snapshot history. The MVP will be demonstrated locally; deployment is deferred. Muse at `/coach` remains development/test-only and needs local API credentials; no live Muse response has been verified. Historical UI descriptions below describe earlier previews.
+The dashboard shows saved personal totals. The old synthetic half-hour chart is no longer shown as live data. Browser BLE transport, live state, and queued uploads are implemented; physical wearable verification remains pending. Tiger DB integration is preserved, including accepted snapshot history. The MVP will be demonstrated locally; deployment is deferred. Muse at `/coach` remains development/test-only and needs local API credentials; no live Muse response has been verified. Historical UI descriptions below describe earlier previews.
 
-**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. The authenticated dashboard at `/` displays saved personal and group totals. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, and accounts, authentication, and administrator-provisioned device ownership are implemented. Browser BLE integration and the live dashboard are not yet complete. The earlier JavaScript prototype has been discarded.
+**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. The authenticated dashboard at `/` displays saved personal and group totals. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, and accounts, authentication, and administrator-provisioned device ownership are implemented. The browser BLE adapter and live dashboard are implemented with synthetic automated coverage; physical device verification is pending. The earlier JavaScript prototype has been discarded.
 
 ## The idea
 
@@ -19,7 +19,7 @@ Long desk sessions can make it easy to lose awareness of how we sit. We want to 
 ## Decisions so far
 
 - Four-person team.
-- ESP32-based wearable, with the exact board and posture sensor still to be selected.
+- ESP32-based wearable; the current source uses BNO055, while exact board/mounting and physical validation remain open.
 - All posture calculations run locally on the ESP32.
 - Bluetooth Low Energy (BLE) transfers calculated results to a nearby laptop browser.
 - The web app displays and stores results; it does not classify raw sensor readings.
@@ -53,7 +53,19 @@ Read [the MVP plan](docs/MVP.md) for scope, the demo flow, proposed workstreams,
 
 Read [the posture and student-health research](docs/posture-health-research.md) for evidence, limits, and the rationale for CS students. The [focused health-tracker interface decision](docs/decisions/004-focused-health-tracker-interface.md) records the agreed simple navy, gold, and white visual direction; layout and game mechanics remain under discussion.
 
-For the software work, read [the app plan](docs/APP_PLAN.md) and [the app API proposal](docs/app-api.md). The [BLE proposal](docs/ble-protocol.md) defines the wearable-to-browser boundary. These describe intended contracts; the scaffold is partial implementation, and hosted storage and account isolation are still planned.
+For the software work, read [the app plan](docs/APP_PLAN.md) and [the app API proposal](docs/app-api.md). The [BLE proposal](docs/ble-protocol.md) defines the wearable-to-browser boundary. The API and BLE documents now describe checked-in source; physical device verification and public deployment remain unfinished.
+
+## Hardware integration
+
+The checked-in [ESP32/BNO055 detector](Hardware/slouch_detector/slouch_detector.ino) already publishes BLE identity and cumulative posture snapshots. Read the [full integration plan](docs/hardware-integration-plan.md), [BLE interface](docs/ble-protocol.md), and [current Rails API](docs/app-api.md). The browser adapter is implemented. Software will follow current hardware behavior under [decision 016](docs/decisions/016-integrate-existing-hardware.md); firmware remains unchanged and has not been compiled/flashed by this work.
+
+### Connect the wearable locally
+
+1. Start the authenticated local app using [local demo setup](docs/local-demo.md), sign in, and have the operator bind the 32-character BLE identity using [device provisioning](docs/authentication-mvp.md#device-provisioning).
+2. On the dashboard, choose **Connect wearable** in a compatible Web Bluetooth browser. Select `bbl-posture`, then sit upright and press BOOT on the wearable to start/calibrate.
+3. Live posture and saving status are separate. Saved Today/Weekly totals refresh after uploads. Disconnecting does not end the firmware session; keep the page open until pending readings are saved. Navigation/reload can lose the in-memory queue.
+
+Run `npm run test:ble` for dependency-free Node decoder/ordering/queue/transport tests. `npm run test:e2e` also covers a visibly labeled simulated wearable through the real isolated Rails API on all four browser projects. Fixture mode is enabled only in the guarded test environment, never in ordinary development or production. These tests do not establish actual Bluetooth support on the demo laptop or sensor accuracy.
 
 ## Development
 
@@ -128,7 +140,7 @@ From a terminal in the repository root, use the pinned Ruby version and installe
 npm ci --ignore-scripts --omit=optional
 npx playwright install chromium firefox webkit
 
-# Run all 60 cases across four browser projects
+# Run the browser suite across four browser projects
 npm run test:e2e
 
 # Open the HTML report after the run
