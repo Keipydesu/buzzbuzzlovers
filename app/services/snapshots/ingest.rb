@@ -64,6 +64,7 @@ module Snapshots
         calendar_day: first_observed_at.in_time_zone(calendar_timezone).to_date
       )
       session.save!
+      record_history!(session, received_at: now)
       Result.new(disposition: :accepted, session: session)
     end
 
@@ -106,6 +107,7 @@ module Snapshots
     end
 
     def apply(session)
+      now = Time.current
       session.assign_attributes(
         protocol_version: snapshot[:protocol_version],
         state: snapshot[:state],
@@ -114,9 +116,27 @@ module Snapshots
         slouch_seconds: snapshot[:slouch_seconds],
         episode_count: snapshot[:episode_count],
         ended: snapshot[:state] == "ended",
-        last_received_at: Time.current
+        last_received_at: now
       )
       session.save!
+      record_history!(session, received_at: now)
+    end
+
+    # One history row per accepted revision (docs/data-storage.md "Atomic ingestion
+    # and retry behavior"): never for rejected/stale/duplicate/conflicting requests,
+    # and always the same server acceptance timestamp used for the session's own
+    # first/last_received_at — never the device's or browser's observation time.
+    def record_history!(session, received_at:)
+      PostureSnapshot.create!(
+        posture_session: session,
+        received_at: received_at,
+        protocol_version: snapshot[:protocol_version],
+        state: snapshot[:state],
+        sequence: snapshot[:sequence],
+        tracked_seconds: snapshot[:tracked_seconds],
+        slouch_seconds: snapshot[:slouch_seconds],
+        episode_count: snapshot[:episode_count]
+      )
     end
   end
 end
