@@ -4,7 +4,7 @@ Status: draft, under active discussion. This sequences the proposals in [MVP.md]
 
 ## Current status and priorities
 
-PR #1 is merged. Username/password authentication and account-scoped API access are implemented locally and independently reviewed. Saved friend groups, link/code joining, and weekly rankings are implemented locally and independently reviewed; see [the competition implementation](social-competition-implementation-plan.md). Browser BLE integration and Tiger Data storage remain unimplemented.
+PR #1 is merged. Username/password authentication and account-scoped API access are implemented locally and independently reviewed. Saved friend groups, link/code joining, and weekly rankings are implemented locally and independently reviewed; see [the competition implementation](social-competition-implementation-plan.md). Browser BLE integration remains unfinished. The merged Tiger snapshot-history and hypertable bootstrap implementation is preserved. The immediate MVP target is a local demo; production setup is deferred.
 
 Current order: finish competition review, confirm hosted account/enrollment and infrastructure choices, implement isolated and authenticated storage with atomic snapshot history, then finish browser/dashboard integration and rehearse the demo. The phase sections below group workstreams rather than implying that every earlier item has landed.
 

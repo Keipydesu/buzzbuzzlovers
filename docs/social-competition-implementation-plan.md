@@ -69,3 +69,5 @@ The implementation uses one canonical-total aggregation for both competition wee
 Full local suite: 81 tests, 341 assertions, no failures/errors after final doc/layout adjustments. RuboCop: 74 files clean. Browser verification used only synthetic accounts in the disposable local database: signup -> create group -> logout -> invitation -> friend signup -> explicit join -> both members visible. Inspected desktop and 390×844 leaderboard layouts. No physical tracker, BLE upload client or hosted rollout has been tested.
 
 Claude independently reviewed the full diff and reran all 81 tests (341 assertions), RuboCop (74 files) and Brakeman (zero warnings), returning AGREE with no blocking competition findings. Both implementation slices are committed locally; pushing/deployment is separate.
+
+Subsequent integration merges the Tiger DB changes from main and retains atomic accepted-snapshot history. See [local demo](local-demo.md); the immediate MVP target is local, while Tiger support is retained.

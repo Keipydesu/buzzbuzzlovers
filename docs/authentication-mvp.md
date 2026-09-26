@@ -35,8 +35,8 @@ Reviewed 2026-09-26 before installation. Rails `has_secure_password` requires bc
 Use only an isolated local PostgreSQL test database:
 
 ```sh
-env -u DATABASE_URL -u PRIMARY_DATABASE_URL -u PGHOST -u PGSERVICE -u PGSERVICEFILE -u PGDATABASE -u PGUSER -u PGPASSWORD PGHOST=127.0.0.1 PGPORT=5432 RAILS_ENV=test bin/rails db:migrate
-env -u DATABASE_URL -u PRIMARY_DATABASE_URL -u PGHOST -u PGSERVICE -u PGSERVICEFILE -u PGDATABASE -u PGUSER -u PGPASSWORD PGHOST=127.0.0.1 PGPORT=5432 PARALLEL_WORKERS=1 bin/rails test
+env -u DATABASE_URL -u PRIMARY_DATABASE_URL -u PGHOST -u PGSERVICE -u PGSERVICEFILE -u PGDATABASE -u PGUSER -u PGPASSWORD SKIP_DOTENV=1 RAILS_ENV=test DATABASE_URL=postgresql://127.0.0.1:5432/bbl_competition_test_20260926 bin/rails db:migrate
+env -u DATABASE_URL -u PRIMARY_DATABASE_URL -u PGHOST -u PGSERVICE -u PGSERVICEFILE -u PGDATABASE -u PGUSER -u PGPASSWORD SKIP_DOTENV=1 RAILS_ENV=test DATABASE_URL=postgresql://127.0.0.1:5432/bbl_competition_test_20260926 PARALLEL_WORKERS=1 bin/rails test
 bin/rubocop --cache false
 bundle exec bundle-audit check
 ```

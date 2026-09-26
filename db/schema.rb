@@ -83,6 +83,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_26_203000) do
     t.check_constraint "tracked_seconds >= 0 AND tracked_seconds <= '4294967295'::bigint", name: "posture_sessions_tracked_seconds_range"
   end
 
+  create_table "posture_snapshots", primary_key: ["received_at", "posture_session_id", "sequence"], force: :cascade do |t|
+    t.timestamptz "received_at", null: false
+    t.bigint "posture_session_id", null: false
+    t.integer "protocol_version", default: 1, null: false
+    t.string "state", null: false
+    t.bigint "sequence", null: false
+    t.bigint "tracked_seconds", null: false
+    t.bigint "slouch_seconds", null: false
+    t.integer "episode_count", null: false
+    t.index ["posture_session_id", "sequence"], name: "index_posture_snapshots_on_session_and_sequence"
+    t.check_constraint "episode_count >= 0 AND episode_count <= 65535", name: "posture_snapshots_episode_count_range"
+    t.check_constraint "protocol_version = 1", name: "posture_snapshots_protocol_version_is_one"
+    t.check_constraint "sequence >= 1 AND sequence <= '4294967295'::bigint", name: "posture_snapshots_sequence_range"
+    t.check_constraint "slouch_seconds <= tracked_seconds", name: "posture_snapshots_slouch_within_tracked"
+    t.check_constraint "slouch_seconds >= 0 AND slouch_seconds <= '4294967295'::bigint", name: "posture_snapshots_slouch_seconds_range"
+    t.check_constraint "state::text = ANY (ARRAY['idle'::character varying, 'calibrating'::character varying, 'upright'::character varying, 'slouching'::character varying, 'sensor_error'::character varying, 'ended'::character varying]::text[])", name: "posture_snapshots_state_is_known"
+    t.check_constraint "tracked_seconds >= 0 AND tracked_seconds <= '4294967295'::bigint", name: "posture_snapshots_tracked_seconds_range"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "username", null: false
     t.string "password_digest", null: false
