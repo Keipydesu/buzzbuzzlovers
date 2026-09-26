@@ -49,7 +49,20 @@ For the software work, read [the app plan](docs/APP_PLAN.md) and [the app API pr
 
 Use established, security-reviewed gems and other dependencies. Avoid brand-new packages and releases without substantial independent scrutiny, and review provenance, advisories, and transitive changes before adoption. See [the dependency safety policy](docs/dependency-safety.md) for required checks and review evidence.
 
-The Rails scaffold is under review. Validate its local setup before documenting supported run commands. The hosted integration is a planning task: no cloud provisioning, dependency installation, or application changes are authorized by the plan alone.
+Local setup was verified with rbenv Ruby 3.3.12, Rails 8.1.4, and PostgreSQL 14. Run commands from the repository root with local PostgreSQL running and no hosted `DATABASE_URL` set:
+
+```sh
+bundle check
+bin/rails db:prepare
+bin/rails tailwindcss:build
+bin/rails server -b 127.0.0.1
+```
+
+Check [the health endpoint](http://127.0.0.1:3000/up). Run `bin/rails test` against the local test database. For live stylesheet updates, run `bin/rails tailwindcss:watch` in a second terminal. These commands do not require Foreman; the scaffold's `bin/dev` attempts to install it if missing.
+
+Each rbenv Ruby version has its own installed gems. On a fresh Ruby installation, install the reviewed lockfile with `BUNDLE_FROZEN=true bundle install`, then run `rbenv rehash`. The September 26, 2026 local setup used an explicitly authorized one-time exception to install the existing locked dependencies; this is not a completed dependency security review. All 41 existing tests passed (120 assertions).
+
+The hosted integration remains planned; these commands prepare local development and test databases only.
 
 ## Browser constraint
 
