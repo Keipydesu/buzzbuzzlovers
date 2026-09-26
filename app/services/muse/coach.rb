@@ -55,7 +55,7 @@ module Muse
       raise Unavailable, "Muse could not finish an answer. Please try again." unless answer.is_a?(String) && !answer.strip.empty?
 
       answer
-    rescue JSON::ParserError, TypeError, NoMethodError, IOError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError
+    rescue JSON::ParserError, TypeError, NoMethodError, IOError, SocketError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError
       raise Unavailable, "Muse could not respond right now. Please try again later."
     end
   end

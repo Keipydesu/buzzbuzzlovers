@@ -8,7 +8,7 @@ Hosted target: authenticated users access Rails over HTTPS, and Rails stores can
 
 The browser and Rails share an origin. Mutations send `Content-Type: application/json`, the Rails CSRF token, and same-origin cookies. Keep Rails request-forgery protection; device identity alone grants no ownership. Do not expose the no-login demo on a public/LAN interface. Hosting or separate wearer accounts requires a chosen authentication and authorization model first. [Rails security guide](https://guides.rubyonrails.org/security.html)
 
-All API responses are JSON and use `Cache-Control: no-store`. Parse integers strictly: floats, numeric strings, booleans, nulls, and out-of-range values are invalid. Reject unknown request fields in v1 so contract drift is visible. Enforce an 8 KiB request-body limit. Dates below are ISO dates; timestamps are RFC 3339 instants with an explicit offset, stored as UTC.
+All API responses are JSON and use `Cache-Control: no-store`. Parse integers strictly: floats, numeric strings, booleans, nulls, and out-of-range values are invalid. Reject unknown request fields in v1 so contract drift is visible. Enforce an 8 KiB request-body limit before JSON decoding, including CSRF parameter access and request logging; oversized bodies return `413` even when malformed. JSON media-type parameters such as `charset=utf-8` are accepted. Dates below are ISO dates; timestamps are RFC 3339 instants with an explicit offset, stored as UTC.
 
 ## Hosted contract additions (proposed, not implemented)
 

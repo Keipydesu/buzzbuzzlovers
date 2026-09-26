@@ -13,22 +13,25 @@ module Api
         end
       end
 
-      MAX_BODY_BYTES = 8.kilobytes
-
       protect_from_forgery with: :exception
       wrap_parameters false
 
       MUTATING_METHODS = %w[POST PUT PATCH].freeze
 
-      before_action :set_no_store
-      before_action :enforce_json_content_type, if: :mutating_request?
-      before_action :enforce_body_size_limit, if: :mutating_request?
+      prepend_before_action :guard_request
 
       rescue_from ApiError, with: :render_api_error
       rescue_from ActionController::InvalidAuthenticityToken, with: :render_forbidden
       rescue_from ActionDispatch::Http::Parameters::ParseError, with: :render_malformed_json
 
       private
+
+      def guard_request
+        set_no_store
+        return unless mutating_request?
+
+        enforce_json_content_type
+      end
 
       def mutating_request?
         MUTATING_METHODS.include?(request.method)
@@ -39,17 +42,10 @@ module Api
       end
 
       def enforce_json_content_type
-        return if request.content_type == "application/json"
+        return if request.media_type == "application/json"
 
         raise ApiError.new(status: :unsupported_media_type, code: "unsupported_media_type",
           message: "Content-Type must be application/json")
-      end
-
-      def enforce_body_size_limit
-        return if request.content_length.nil? || request.content_length <= MAX_BODY_BYTES
-
-        raise ApiError.new(status: :payload_too_large, code: "payload_too_large",
-          message: "Request body exceeds #{MAX_BODY_BYTES} bytes")
       end
 
       def render_api_error(error)

@@ -170,4 +170,28 @@ class Api::V1::SnapshotsTest < ActionDispatch::IntegrationTest
 
     assert_response :unsupported_media_type
   end
+  test "rejects impossible calendar dates without creating or updating sessions" do
+    put_snapshot(VALID_DEVICE_ID, 7)
+    original = PostureSession.find_by!(device_session_id: 7).attributes
+    %w[2026-02-30 2025-02-29 2026-04-31].each do |date|
+      [ 7, 8 ].each do |id|
+        assert_no_difference "PostureSession.count" do
+          put_snapshot(VALID_DEVICE_ID, id, snapshot_overrides: { sequence: 13 },
+            observation_overrides: { first_observed_at: "#{date}T12:00:00Z" })
+        end
+        assert_response :unprocessable_entity
+        assert_equal "invalid_observation", response.parsed_body.dig("error", "code")
+        assert_equal original, PostureSession.find_by!(device_session_id: 7).attributes
+      end
+    end
+  end
+
+  test "accepts a real leap day and preserves the offset-derived calendar bucket" do
+    put_snapshot(VALID_DEVICE_ID, 7,
+      observation_overrides: { first_observed_at: "2024-02-29T00:30:00+02:00" })
+    assert_response :ok
+    session = PostureSession.find_by!(device_session_id: 7)
+    assert_equal Time.utc(2024, 2, 28, 22, 30), session.first_observed_at
+    assert_equal Date.new(2024, 2, 28), session.calendar_day
+  end
 end

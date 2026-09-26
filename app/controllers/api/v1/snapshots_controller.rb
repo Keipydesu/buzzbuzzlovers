@@ -98,6 +98,11 @@ module Api
           raise invalid_observation("first_observed_at must be an RFC 3339 timestamp with an explicit offset")
         end
 
+        year, month, day = raw[0, 10].split("-").map(&:to_i)
+        unless Date.valid_date?(year, month, day, Date::GREGORIAN)
+          raise invalid_observation("first_observed_at must contain a valid calendar date")
+        end
+
         begin
           timestamp = Time.iso8601(raw)
         rescue ArgumentError
