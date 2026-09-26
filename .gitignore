@@ -13,3 +13,8 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# Browser test dependencies and local evidence
+/node_modules/
+/playwright-report/
+/test-results/

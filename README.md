@@ -116,3 +116,30 @@ The goal now illustrates [slouch reduction](docs/decisions/010-reward-slouch-red
 ### Local MVP demo
 
 The immediate target is a loopback-only demo, not production deployment. See [local demo setup](docs/local-demo.md). The merged Tiger DB/hypertable implementation remains available when explicitly selected; local development and tests use ordinary PostgreSQL. Production Docker/Kamal configuration is deferred.
+
+## Browser user-loop tests
+
+See the [Playwright coverage plan and local commands](docs/playwright-user-loop-plan.md) and [dependency review](docs/playwright-dependency-review.md). `npm run test:e2e` starts an isolated Rails server and exercises mobile Chromium/WebKit and desktop Chromium/Firefox against the dedicated local `bbl_playwright_test` database. This complements Rails tests; BLE hardware and live Meta calls remain separate integration checks.
+
+From a terminal in the repository root, use the pinned Ruby version and installed gems (`bundle check`), Node/npm, and local PostgreSQL running on `127.0.0.1:5432`. Your local database role must be able to create a database.
+
+```sh
+# First-time browser test setup
+npm ci --ignore-scripts --omit=optional
+npx playwright install chromium firefox webkit
+
+# Run all 60 cases across four browser projects
+npm run test:e2e
+
+# Open the HTML report after the run
+npm run test:e2e:report
+```
+
+For a shorter run or to watch the browser:
+
+```sh
+npm run test:e2e -- --project=mobile-chromium
+npm run test:e2e -- --project=desktop-chromium --headed
+```
+
+The runner starts and stops its own Rails server on port **3118**; leave that port free and run one suite at a time. It prepares the dedicated local **`bbl_playwright_test`** database and clears its synthetic application records before each test. Keep that database reserved for tests. The runner supplies its own isolated environment, so no `.env`, hosted database URL, Meta key, or manually started Rails server is needed.

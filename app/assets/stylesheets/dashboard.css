@@ -222,3 +222,8 @@ body { margin: 0; }
 .invite-code { font-size: 1.3rem; letter-spacing: .12em; }
 .personal-history { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: .85rem; }
 .personal-history th, .personal-history td { text-align: left; padding: .7rem .25rem; border-bottom: 1px solid var(--border); }
+
+/* User-supplied names must fit narrow screens, including WebKit. */
+.tracker .competition-hero h1, .tracker .group-heading h1,
+.tracker .member-info, .tracker .ranking-row > a { min-width: 0; overflow-wrap: anywhere; }
+.account-page h1 { overflow-wrap: anywhere; }

@@ -61,7 +61,9 @@ class GroupsTest < ActionDispatch::IntegrationTest
       delete leave_group_path(group)
       assert_response :not_found
       post join_group_path, params: { code: "NOTAVALIDONE" }
-      assert_response :not_found
+      assert_redirected_to groups_path
+      follow_redirect!
+      assert_select "[role=alert]", text: "Invite code was not found. Check it and try again."
     end
   end
 

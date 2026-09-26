@@ -2,6 +2,7 @@
   <main class="dashboard groups-page">
     <%= render "groups/header" %>
     <h1>Your groups</h1>
+    <% if flash[:alert] %><p role="alert"><%= flash[:alert] %></p><% end %>
     <section class="panel">
       <% if @groups.empty? %><p>Create a group or join your friends with a code.</p><% end %>
       <ul class="ranking-list"><% @groups.each do |group| %><li class="ranking-row"><%= link_to group.name, group_path(group) %></li><% end %></ul>

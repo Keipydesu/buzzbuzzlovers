@@ -2,6 +2,8 @@
 <html>
   <head>
     <title><%= content_for(:title) || "bbl" %></title>
+    <%# Prefetch responses can race logout and restore a stale cookie session. %>
+    <meta name="turbo-prefetch" content="false">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="bbl">
