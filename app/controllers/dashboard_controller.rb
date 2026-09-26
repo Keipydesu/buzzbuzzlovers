@@ -1,5 +1,9 @@
 class DashboardController < ApplicationController
+  skip_before_action :require_authentication, only: :show
+
   def show
+    return render :landing unless current_user
+
     @timezone = Rails.application.config.x.demo_timezone
     today = Time.current.in_time_zone(@timezone).to_date
     @summary = DailySummaryQuery.call(date: today, sessions: current_user.posture_sessions)

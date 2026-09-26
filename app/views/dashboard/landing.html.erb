@@ -1,0 +1,57 @@
+<% content_for :title, "bbl — build better posture, together" %>
+<div class="tracker" data-controller="theme" data-theme="dark">
+  <a class="skip-link" href="#welcome">Skip to introduction</a>
+  <main class="landing-page">
+    <header class="topbar landing-topbar">
+      <span class="brand">bbl<span class="brand-period">.</span></span>
+      <div class="topbar-actions">
+        <button type="button" class="theme-button" data-theme-target="button" data-action="theme#toggle" aria-label="Switch to light mode">☀ Light mode</button>
+        <%= link_to "Log in", login_path, class: "group-link" %>
+        <%= link_to "Sign up", signup_path, class: "competition-primary" %>
+      </div>
+    </header>
+
+    <section class="hero" id="welcome">
+      <div class="hero-copy-col">
+        <p class="eyebrow">SMALL HABITS. SHARED PROGRESS.</p>
+        <h1>Notice your posture. Build better habits, <span>together</span>.</h1>
+        <p class="hero-copy">Make sense of your desk time. See your recorded posture habits, look back on your week, and bring your friends along for a little healthy competition.</p>
+        <p class="hero-note">Wearable pairing is coming soon. You can create an account and set up your group today.</p>
+        <div class="hero-actions">
+          <%= link_to "Create your account", signup_path, class: "competition-primary" %>
+          <%= link_to "Log in →", login_path, class: "group-link" %>
+        </div>
+      </div>
+      <div class="hero-graphic panel" aria-hidden="true">
+        <p class="chart-caption">Sample week</p>
+        <div class="hero-chart">
+          <% [ 30, 55, 40, 70, 45, 20, 60 ].each do |value| %>
+            <div class="hero-bar" style="height: <%= value %>%"></div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-features">
+      <div class="panel">
+        <p class="eyebrow">DAILY</p>
+        <h2>Know your desk habits</h2>
+        <p>See your recorded slouch episodes and time alongside how long you tracked. Start with awareness, one session at a time.</p>
+      </div>
+      <div class="panel">
+        <p class="eyebrow">WEEKLY</p>
+        <h2>Compete with a group</h2>
+        <p>Create a group, share a link or code, and compare your weekly slouch share. A little encouragement goes a long way.</p>
+      </div>
+      <div class="panel">
+        <p class="eyebrow">FOCUSED</p>
+        <h2>Your last seven days</h2>
+        <p>Review saved sessions across seven days. History groups sessions by the day they were first seen, with clear gaps when nothing was recorded.</p>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      <p>bbl · A little awareness. A little friendly competition.</p>
+    </footer>
+  </main>
+</div>

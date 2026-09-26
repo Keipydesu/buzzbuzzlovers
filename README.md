@@ -1,5 +1,7 @@
 # bbl
 
+UI priority and verification: [Mobile-first interface](docs/mobile-first-interface.md). Visitors at `/` now see a public introduction; signed-in users see their saved dashboard. Login and signup share the navy/gold tracker design and light/dark themes.
+
 Account implementation and operator setup: [MVP authentication](docs/authentication-mvp.md).
 
 A HackGT 13 project by team **bbl**: a small wearable that tracks slouching, paired with a mobile-first web dashboard for daily awareness, weekly history, and gamified progress.

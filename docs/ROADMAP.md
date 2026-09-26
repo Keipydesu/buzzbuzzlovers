@@ -74,7 +74,7 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 
 *Owner: TBD (proposed: claude)*
 
-A responsive Rails visual preview now exists at `/`, with sample states, a weekly chart, a goal ring, milestones, and light/dark modes. It does not implement live BLE or saved-user dashboard integration; the acceptance items below remain open.
+The public `/` introduces bbl before account creation or login; signed-in visitors see saved personal/group totals. Landing, login, and signup follow the [mobile-first UI requirements](mobile-first-interface.md) with light/dark themes. The original sample charts, goal ring, and milestones are historical previews, not current saved-data features. Browser BLE and the remaining acceptance items below are unfinished.
 
 - [ ] Mobile-first dashboard: connection status, live posture/session state
 - [ ] Trend-first dashboard with today’s frequency bar chart; agree device time buckets/events and coverage before connecting real timeline data
