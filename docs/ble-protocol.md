@@ -34,8 +34,8 @@ All multi-byte fields are **unsigned, little-endian**. Reject lengths other than
 | --- | --- | --- |
 | 0 | `idle` | Waiting for first calibration; no tracked time |
 | 1 | `calibrating` | BOOT-triggered baseline capture; no tracked time |
-| 2 | `upright` | Not forward beyond threshold; tracked time accumulates |
-| 3 | `slouching` | Forward beyond threshold, even before episode qualification; tracked and slouch time accumulate |
+| 2 | `upright` | Not yet qualified as slouching (including a lean shorter than 10 seconds); tracked time accumulates |
+| 3 | `slouching` | Qualified continuous lean of at least 10 seconds, including recovery until 3 seconds upright; tracked and slouch time accumulate |
 | 4 | `sensor_error` | Sensor check failed; tracking pauses after detection; may occur with session `0` at boot |
 | 5 | `ended` | Currently reached only when another qualifying episode would overflow episode count |
 
@@ -46,12 +46,12 @@ In normal operation sequence starts at `1` after allocating a positive session. 
 The current sketch uses wrapped angle difference from its captured upright baseline. A difference strictly below `-10` degrees is forward slouching; leaning back and exactly `-10` are not. These are code settings, not validated ergonomic thresholds. The app must not reclassify angles or apply independent persistence filters.
 
 - Nominal loop delay is 100 ms plus sensor/serial/other work. Each loop credits elapsed milliseconds to the preceding posture state, then evaluates the sensor. Transmitted totals are floored whole seconds. This is sampled interval accounting; it does not locate a transition within a sample interval.
-- `tracked_seconds` accumulates in upright/slouching states; `slouch_seconds` accumulates in slouching state immediately, including short leans that never become episodes. `slouch_seconds <= tracked_seconds` must hold.
-- An episode increments once only after **more than 60,000 ms** of continuous forward slouch. Exactly 60 seconds is insufficient. A return to the non-slouch range resets the candidate immediately; calibration or classified sensor error clears detection. This implements [decision 006](decisions/006-one-minute-slouch-qualification.md) in source, without proving physical accuracy.
-- LED warning starts after 10 seconds and clears after 3 continuous seconds of recovery. This warning timer is separate from the episode timer; the browser cannot infer LED status from the episode count.
+- `tracked_seconds` accumulates in upright/slouching states. Before qualification, a lean contributes no slouch time. At the first sample at or after 10,000 ms of continuous forward lean, credit the full candidate duration once and increment `episode_count` once. The preceding ten seconds are included, as is any sampling overshoot. `slouch_seconds <= tracked_seconds` still holds.
+- State, LED and episode timing share [decision 017](decisions/017-ten-second-slouch-grace.md): stay slouching until at least 3,000 ms continuously upright, counting the recovery interval too. A shorter upright interruption neither increments the episode nor credits the candidate again. Before qualification, any upright sample discards the candidate. Calibration and classified sensor error clear detection.
+- The old >60-second episode rule is superseded. UUIDs/layout/version are unchanged; previously saved sessions and devices still running old firmware retain their original semantics. The app transports their counters without reclassification; update the firmware to use the new timing.
 - Calibration waits roughly 1 second to settle, then averages readings over the following 3 seconds. Recalibration preserves the existing session and counters. Sensor loss during calibration can leave it calibrating and later use too few or pre-gap samples. Recovery from a mid-session sensor error reuses the old baseline.
 
-The resulting UI labels should distinguish “slouch time” from “episodes over 60 seconds.” A nonzero slouch duration with zero episodes is valid. Neither field establishes medically correct posture.
+A current-firmware episode includes at least its ten-second candidate credit. Older firmware may report nonzero slouch duration with zero episodes, which remains wire-valid. Neither field establishes medically correct posture.
 
 ## Publication and session lifecycle
 
@@ -85,7 +85,7 @@ The following are synthetic fixtures, not captured hardware readings:
 | --- | --- |
 | Realistic integration example | `01 03 07 00 00 00 b5 00 00 00 b4 00 00 00 46 00 00 00 01 00`: v1, slouching, session 7, revision 181, tracked 180, slouch 70, episodes 1 |
 | Pre-session sensor failure | `01 04 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00`: display sensor error, do not upload |
-| Historical layout-only fixture | `01 02 07 00 00 00 0c 00 00 00 3c 00 00 00 0a 00 00 00 02 00`: upright, session 7, revision 12, tracked 60, slouch 10, episodes 2. Byte-valid, but physically inconsistent with >60-second episode qualification; do not present as real demo activity |
+| Historical layout-only fixture | `01 02 07 00 00 00 0c 00 00 00 3c 00 00 00 0a 00 00 00 02 00`: upright, session 7, revision 12, tracked 60, slouch 10, episodes 2. Byte-valid, but physically inconsistent with two ten-second qualification credits; do not present as real demo activity |
 | Unsigned range check | `01 02 ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 80 ff ff`: session/revision/tracked = 4294967295, slouch = 2147483648, episodes = 65535; parser boundary only, not a source-reachable longevity claim |
 
-Python `struct` with `<BBIIIIH` independently verified these 20-byte layouts during documentation review. This is not firmware compilation or a BLE capture. Future tests must cover wrong lengths/version/state, equal conflicts, duplicates/stale data, decreasing counters, unsigned bounds, session-zero error, recalibration, reboot, terminal repeats/reload races, disconnect versus HTTP failure, and real below/exactly/above-60-second sensor trials. Record board, firmware/core/library versions, laptop/OS/browser, observed packets, and limitations during physical acceptance.
+Python `struct` with `<BBIIIIH` independently verified these 20-byte layouts during documentation review. This is not firmware compilation or a BLE capture. Future tests must cover wrong lengths/version/state, equal conflicts, duplicates/stale data, decreasing counters, unsigned bounds, session-zero error, recalibration, reboot, terminal repeats/reload races, disconnect versus HTTP failure, and real below/exactly/above-10-second qualification and 3-second recovery trials. Record board, firmware/core/library versions, laptop/OS/browser, observed packets, and limitations during physical acceptance.

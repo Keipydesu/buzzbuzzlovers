@@ -43,13 +43,16 @@ test('every screen fits the viewport in both themes with usable account controls
   await page.goto('/signup');
   await signup(page, 'a'.repeat(24));
   const group = await createGroup(page, 'A'.repeat(40));
-  for (const path of ['/', '/groups', group.path, '/coach']) {
+  for (const path of ['/', '/groups', group.path, '/coach', '/wearable']) {
     await page.goto(path);
     for (const theme of ['light', 'dark']) {
       await page.getByRole('button', { name: `Switch to ${theme} mode` }).click();
       await expect(page.locator('.tracker')).toHaveAttribute('data-theme', theme);
       await expect(page.locator('.tracker')).toHaveCSS('color', theme === 'light' ? 'rgb(5, 30, 57)' : 'rgb(249, 250, 252)');
       await noOverflow(page);
+      for (const control of await page.locator('.compact-header .theme-button, .compact-header .header-wearable, .account-menu > details > summary').all()) {
+        expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);
+      }
     }
   }
   await page.goto(`/groups/join/${group.code}`);

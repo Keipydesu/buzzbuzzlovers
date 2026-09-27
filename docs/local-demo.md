@@ -15,7 +15,7 @@ SKIP_DOTENV=1 RAILS_ENV=development DATABASE_URL=postgresql://127.0.0.1:5432/bbl
 
 If the shell already has `PRIMARY_DATABASE_URL` or PostgreSQL service/host overrides, unset them first as in the test command below. Visit `http://127.0.0.1:3107/signup`, create an account and group, then open its invite link in another browser session or log out and create a second account. Joining requires a button/code submission; simply opening a link never joins.
 
-Bind a wearable as the operator using the [account setup command](authentication-mvp.md). Device ownership cannot be claimed publicly or transferred implicitly. Existing unowned tracking history remains unowned. There are no seeded real credentials or personal records.
+Connect a new wearable while signed in. The first session upload registers it automatically to this account under [decision 018](decisions/018-mvp-first-connection-registration.md); no manual binding is needed. Other-owned devices and legacy unowned history remain unavailable. This first-claim convenience is not proof of possession and is intended for the trusted MVP.
 
 ## Tiger support stays intact
 
@@ -40,7 +40,7 @@ Final integration verification: 90 tests / 354 assertions passed, with one expec
 
 ## Browser BLE integration
 
-The signed-in dashboard now connects a real Web Bluetooth transport to the existing snapshot API. The operator must provision the BLE identity first; a device POST only checks that binding. Connect on a user click, press the physical BOOT button upright, and observe live readings and saving status separately. Slouch time includes short leans, while episode count requires more than one minute. No normal end command exists; disconnected/rebooted sessions remain incomplete with their saved totals.
+The signed-in `/wearable` page connects a real Web Bluetooth transport to the existing snapshot API. The first positive-session upload registers an unused identity to the signed-in account automatically. Connect on a user click, press the physical BOOT button upright, and observe live readings and saving status separately. Updated firmware qualifies at ten seconds, credits that candidate and one episode, then resets after three seconds continuously upright. Shorter candidates contribute nothing. No normal end command exists; disconnected/rebooted sessions remain incomplete with their saved totals.
 
 Software checks use the existing installed tools, without new packages:
 
@@ -50,7 +50,7 @@ npm run test:e2e
 bin/rubocop --cache false
 ```
 
-The browser suite uses the dedicated `bbl_playwright_test` database and loopback port 3118, with external requests blocked. Its `/?ble_fixture=1` mode is rendered only when Rails is in test mode with `BBL_E2E=1`; the test entrypoint verifies database isolation. The banner explicitly marks simulated data. Native transport tests use fake GATT objects to exercise subscription/read ordering, disconnect, and stale callback cancellation. No test contacts a real wearable or live hosted database.
+The browser suite uses the dedicated `bbl_playwright_test` database and loopback port 3118, with external requests blocked. Its `/wearable?ble_fixture=1` mode is rendered only when Rails is in test mode with `BBL_E2E=1`; the test entrypoint verifies database isolation. The banner explicitly marks simulated data. Native transport tests use fake GATT objects to exercise subscription/read ordering, disconnect, and stale callback cancellation. No test contacts a real wearable or live hosted database.
 
 Remaining physical checks: record exact ESP32 board, BNO055 mounting, firmware/core/library versions, and laptop/OS/browser; capture identity and 20-byte notifications; exercise BOOT, below/exactly/above-60-second leans, sensor errors, held-button staleness, reconnect recovery, and power-off loss. Device firmware is unchanged. A responsive browser passing simulated tests does not mean it supports Web Bluetooth.
 
@@ -59,3 +59,34 @@ The queue is in memory. Disconnect preserves pending data while the page stays o
 Implementation verification (2026-09-26): 21 Node tests passed; the full four-project browser suite passed 92/92; Rails passed 91 runs / 377 assertions with one expected Timescale-only skip on isolated local `bbl_ble_test_20260926`; RuboCop checked 84 files with no offenses. Browser failures found during development (detached timer binding and a test's unawaited logout) were corrected and rerun. A summary-refresh race has a regression case. Final device-switch and theme-rendering checks passed 8/8 across all four browser projects after the full suite.
 
 Reviewed mobile screenshots use visibly labeled synthetic data: [dark theme](screenshots/ble-mobile-dark.png), [light theme](screenshots/ble-mobile-light.png). Capture waits for the theme's color transition to finish; an intermediate frame is not accepted as visual QA. Physical sensor/BLE verification is still pending.
+
+## Ten-second firmware and automatic registration follow-up
+
+The updated sketch uses [decision 017](decisions/017-ten-second-slouch-grace.md): under 10 seconds counts nothing; at 10 seconds it credits the full candidate and one episode; slouch time continues until 3 continuous upright seconds. Brief recovery does not create a new episode or another backfill. Reflash `Hardware/slouch_detector/slouch_detector.ino` with its adjacent `posture_timing.h` using the team's known board/core/library setup. Those exact versions are not recorded here and `arduino-cli` was unavailable in this environment; no full firmware compile, flash or physical validation is claimed.
+
+Run the dependency-free host timing checks with the installed C++ compiler:
+
+```sh
+clang++ -std=c++11 -Wall -Wextra -Werror -pedantic test/firmware/posture_timing_test.cpp -o /tmp/bbl-posture-timing-test
+/tmp/bbl-posture-timing-test
+```
+
+The browser continues displaying firmware counters without reinterpretation. Existing saved data and devices running old firmware keep their old measurement semantics; v1 packets do not identify the firmware revision. Test on hardware: 9 seconds forward then upright yields zero; 10 seconds forward yields one episode and about 10 slouch seconds; a <3-second upright interruption keeps the same episode; >=3 seconds upright resets for a new ten-second candidate. Sensor error and recalibration interrupt detection.
+
+A connected wearable with empty saved stats may have an upload error; inspect the saving status below live readings. The first-use registration regression covers a previously unknown identity through the real isolated Rails API, then verifies Today refreshes. Authentication, existing-owner rejection and legacy-history protection still apply. No live user queue was submitted as part of automated verification.
+
+Follow-up automated verification (2026-09-26): host C++ timing checks passed; Node BLE tests 21/21; isolated Rails suite 94 runs / 392 assertions / 0 failures / 1 expected Timescale-only skip; RuboCop 85 files clean; BLE Playwright suite 40/40 across all four browser projects. The browser cases cover the ten-second cumulative jump, first-use registration without a manual binding, existing-owner rejection, retries, summary refresh and account changes. Direct model/schema/migration review confirmed no data-model change; no generated model-map task exists.
+
+## Separate pairing and visual dashboard
+
+Use **Wearable →** from the dashboard to connect. Keep `/wearable` open while tracking; **View dashboard ↗** opens saved history in a separate tab without tearing down the connection. Dashboard numbers and bars refresh on reload. Navigating away from the wearable page disconnects its transport; the existing unsaved-data prompt remains active. Setup instructions and qualification details are in its expandable help.
+
+The dashboard charts seven days of canonical saved totals, with slouch and device-classified non-slouch segments. Its dashed line averages tracked minutes across days with saved sessions (including recorded zero-duration days); missing dates are excluded and marked with a dash. Exact values remain in the expandable table. This uses first-seen-date grouping, not accurate cross-midnight allocation. No synthetic daily frequency chart was restored. See [decision 019](decisions/019-separate-pairing-and-weekly-chart.md).
+
+Verification (2026-09-26): BLE/tracking/dashboard Playwright specs passed 60/60 across mobile Chromium (320px), desktop Chromium, mobile WebKit (320px), and desktop Firefox. Cases cover zero vs missing days, recorded-day averages, preserved uploads from a separate dashboard tab, retries, account changes, and first-use registration. Isolated Rails suite passed 94 runs / 395 assertions, with one expected Timescale-only skip; RuboCop checked 85 files clean. Whitespace and relative Markdown links passed. Direct models/schema/migrations review found no change needed; no generated model-map task exists. Physical BLE remains unverified by these checks.
+
+Reviewed synthetic-fixture screenshots: [mobile dark](screenshots/dashboard-weekly-mobile-dark.png), [mobile light](screenshots/dashboard-weekly-mobile-light.png), [desktop light](screenshots/dashboard-weekly-desktop-light.png).
+
+The follow-up in [decision 020](decisions/020-competition-first-uncluttered-dashboard.md) puts weekly competition first, consolidates navigation into one header, and removes technical calendar/unfinished-session notes from the dashboard. Account logout is inside the account icon menu. Those changes do not alter saved-data allocation, scoring, or wearable diagnostics.
+
+Final simplified-layout verification (2026-09-26): the full browser suite passed 108/108 across all four projects, including shared headers, account-menu logout, both themes, 320px layouts, `/wearable`, and competition-first ordering. Rails again passed 94 tests / 395 assertions with the expected Timescale-only skip; RuboCop remained clean on 85 files. The three dashboard screenshots above now show this final revision. No dependencies or schema changes were introduced.

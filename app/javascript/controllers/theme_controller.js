@@ -20,7 +20,8 @@ export default class extends Controller {
 
   apply(theme) {
     this.element.dataset.theme = theme
-    this.buttonTarget.textContent = theme === "dark" ? "☀ Light mode" : "☾ Dark mode"
+    const compact = this.buttonTarget.dataset.iconOnly === "true"
+    this.buttonTarget.textContent = theme === "dark" ? (compact ? "☀" : "☀ Light mode") : (compact ? "☾" : "☾ Dark mode")
     this.buttonTarget.setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} mode`)
   }
 }

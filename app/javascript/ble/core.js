@@ -172,7 +172,7 @@ export class UploadQueue {
         this.message = "Saving unavailable. Unsaved readings will retry; keep this page open."
       } else {
         this.block(key, response.status === 404 && response.body?.error?.code === "device_not_found"
-          ? "Device is not provisioned for this account. Ask the operator to bind it, then retry."
+          ? "This wearable is unavailable for this account. Sign in with its original account or use another wearable."
           : `Saving stopped (${response.status}). ${response.body?.error?.message || "Check the request or device before retrying."}`)
       }
     } finally {

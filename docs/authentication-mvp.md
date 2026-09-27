@@ -1,6 +1,6 @@
 # MVP accounts and device ownership
 
-Implemented first slice of the [competition plan](social-competition-implementation-plan.md): username/password accounts, cookie sessions, account-scoped API access, and administrator-provisioned devices. Groups and live tracking integration are separate steps.
+Implemented first slice of the [competition plan](social-competition-implementation-plan.md): username/password accounts, cookie sessions, account-scoped API access, and automatic first-use device registration. Groups and live tracking integration are separate steps.
 
 ## Account flow
 
@@ -8,17 +8,19 @@ Visit `/signup` or `/login`. Usernames normalize to lowercase and accept 3–24 
 
 Login is limited to 10 attempts per IP per 3 minutes; signup to 5. This uses the Rails cache store (development memory cache; production Solid Cache). Production forces HTTPS. Deployment must configure the production cache/database and HTTPS; this change does not provision hosting.
 
-## Device provisioning
+## Device registration
 
-After the user signs up, an operator with access to the Rails environment runs:
+For the local MVP, connect a new wearable while signed in and press BOOT to calibrate. Its first session upload automatically registers it to that account; no operator command is required. Reconnect with the same account. [Decision 018](decisions/018-mvp-first-connection-registration.md) records the trust-based first-claim policy: a public BLE identity is not possession proof, and stronger enrollment is deferred before untrusted public rollout.
+
+Every API endpoint requires login (`401` otherwise). `POST /api/v1/devices` returns `200` when it registers an unused ID/empty unowned row or acknowledges the existing owner. Other-owned identities and legacy unowned history both return `404` without owner details. A row lock serializes concurrent claims. Device lists, session reads, uploads and summaries remain account-scoped. New sessions freeze their device owner's user ID.
+
+The optional operator task remains available for planned setup:
 
 ```sh
 bin/rails 'devices:provision[00112233445566778899aabbccddeeff,alice]'
 ```
 
-This is an administrator action, not an HTTP endpoint. It cannot transfer an owned device or attribute legacy unowned history. Repeating the same binding is harmless. Existing prototype history remains unowned and inaccessible to accounts; any future import requires an explicit audited mapping. Device transfers are outside MVP scope.
-
-Every API endpoint requires login (`401` otherwise). Device lists and summaries are scoped to the account; unknown and other-owned devices both return `404`. `POST /api/v1/devices` now acknowledges only an already provisioned device with `200`; it no longer registers arbitrary identities with `201`. Snapshot bodies and reconciliation semantics are unchanged. New sessions freeze their device owner's user ID; personal summaries use that owner.
+Neither this task nor the HTTP endpoint transfers an owned device or attributes legacy history. Device transfer and revocation remain outside MVP scope.
 
 ## Dependency review: bcrypt 3.1.22
 

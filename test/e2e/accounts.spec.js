@@ -32,7 +32,7 @@ test('signup through landing, empty dashboard, logout and normalized login', asy
   await expect(page).toHaveURL('/');
   await expect(page.getByText('No saved activity today.')).toBeVisible();
   await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
-  await expect(page.getByRole('cell', { name: 'No data', exact: true })).toHaveCount(7);
+  await expect(page.locator('.saved-week-missing')).toHaveCount(7);
   await logout(page);
   await expect(page).toHaveURL('/login');
   await page.goto('/');
@@ -63,7 +63,7 @@ test('signup errors, duplicate username and login failure remain actionable', as
 });
 
 test('anonymous and logged-out private routes and API stay protected; CSRF is real', async ({ page }) => {
-  for (const path of ['/groups', '/coach']) {
+  for (const path of ['/groups', '/coach', '/wearable']) {
     await page.goto(path);
     await expect(page).toHaveURL('/login');
   }

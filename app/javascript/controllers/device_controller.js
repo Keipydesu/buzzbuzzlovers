@@ -7,7 +7,7 @@ import { currentAccount, publishAccount } from "ble/account_context"
 export default class extends Controller {
   static values = { account: String, fixture: Boolean, fixtureDevice: String, observedAt: String }
   static targets = ["connection", "posture", "saving", "details", "connectButton", "disconnectButton", "retryButton", "identity",
-    "todayEpisodes", "todayTracked", "todaySlouch", "empty", "incomplete", "history", "summaryStatus"]
+    "todayEpisodes", "todayTracked", "todaySlouch", "empty", "incomplete", "summaryStatus"]
 
   connect() {
     this.active = true; this.accountChanged = false; this.capacityError = false
@@ -180,27 +180,15 @@ export default class extends Controller {
     this.refreshing = true; this.summaryDirty = false
     try {
       const today = await this.request("/api/v1/today")
-      const weekly = await this.request("/api/v1/weekly")
       if (!this.isCurrent()) return
-      if (today.status !== 200 || weekly.status !== 200) throw new Error("Summary unavailable")
+      if (today.status !== 200) throw new Error("Summary unavailable")
       const summary = today.body.summary
       this.todayEpisodesTarget.textContent = summary.episode_count
       this.todayTrackedTarget.textContent = (summary.tracked_seconds / 60).toFixed(1)
       this.todaySlouchTarget.textContent = (summary.slouch_seconds / 60).toFixed(1)
       this.emptyTarget.hidden = summary.session_count !== 0
       this.incompleteTarget.textContent = summary.incomplete_session_count ? `${summary.incomplete_session_count} unfinished sessions included.` : ""
-      const rows = weekly.body.days.map(day => {
-        const row = document.createElement("tr"), heading = document.createElement("th")
-        heading.scope = "row"; heading.textContent = new Date(`${day.date}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", timeZone: "UTC" }); row.append(heading)
-        if (day.summary.session_count === 0) {
-          const cell = document.createElement("td"); cell.colSpan = 2; cell.textContent = "No data"; row.append(cell)
-        } else for (const field of ["tracked_seconds", "slouch_seconds"]) {
-          const cell = document.createElement("td"); cell.textContent = (day.summary[field] / 60).toFixed(1); row.append(cell)
-        }
-        return row
-      })
-      this.historyTarget.replaceChildren(...rows)
-      this.summaryStatusTarget.textContent = "Saved totals refreshed. Group rankings refresh when you open the leaderboard."
+      this.summaryStatusTarget.textContent = "Saved totals refreshed."
     } catch {
       if (this.active) this.summaryStatusTarget.textContent = "Saved summary could not refresh. Reload after pending readings are saved."
     } finally {

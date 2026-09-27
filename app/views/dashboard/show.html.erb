@@ -1,10 +1,8 @@
 <% content_for :title, "bbl" %>
 <% content_for :head do %><meta name="turbo-cache-control" content="no-cache"><% end %>
-<% fixture_mode = Rails.env.test? && ENV["BBL_E2E"] == "1" && params[:ble_fixture] == "1" %>
-<div class="tracker" data-controller="theme device" data-theme="dark" data-device-account-value="<%= current_user.id %>"
-  <% if fixture_mode %>data-device-fixture-value="true" data-device-fixture-device-value="<%= current_user.devices.order(:id).first&.id %>" data-device-observed-at-value="<%= Time.current.iso8601 %>"<% end %>>
+<div class="tracker" data-controller="theme" data-theme="dark">
   <a class="skip-link" href="#today">Skip to today’s stats</a>
-  <main class="dashboard">
+  <main class="dashboard visual-dashboard">
     <%= render "groups/header" %>
     <section class="panel competition-hero">
       <p class="eyebrow">THIS WEEK'S RACE</p>
@@ -13,44 +11,12 @@
         <div class="competition-standing"><div class="standing-rank"><%= @entry.rank ? "##{@entry.rank}" : "—" %><span>your rank</span></div><div class="standing-message"><p><%= @entry.ratio ? "#{number_with_precision(@entry.ratio.to_f * 100, precision: 2)}% slouch share" : "No recorded activity this week yet." %></p></div></div>
         <%= link_to "See leaderboard →", group_path(@group), class: "competition-primary" %>
       <% else %>
-        <h1>Better habits with friends</h1><p>Create a group or use a friend's invite code to start competing.</p>
+        <h1>Better together</h1>
       <% end %>
-      <%= link_to "Your groups / join a group", groups_path, class: "group-link" %>
+      <%= link_to "Your groups", groups_path, class: "group-link" %>
     </section>
-    <section id="today" class="panel frequency-panel">
-      <h2>Today's recorded stats</h2><p class="chart-caption">Sessions by first-seen date · <%= @timezone %></p>
-      <div class="session-metrics">
-        <div><span class="metric-label">Episodes</span><p data-device-target="todayEpisodes"><%= @summary[:episode_count] %></p></div>
-        <div><span class="metric-label">Tracked time</span><p><span data-device-target="todayTracked"><%= number_with_precision(@summary[:tracked_seconds] / 60.0, precision: 1) %></span><span>min</span></p></div>
-        <div><span class="metric-label">Slouch time</span><p><span data-device-target="todaySlouch"><%= number_with_precision(@summary[:slouch_seconds] / 60.0, precision: 1) %></span><span>min</span></p></div>
-      </div>
-      <p data-device-target="empty" <%= "hidden" unless @summary[:session_count].zero? %>>No saved activity today.</p>
-      <p data-device-target="incomplete"><% if @summary[:incomplete_session_count].positive? %><%= @summary[:incomplete_session_count] %> unfinished sessions included.<% end %></p>
-      <p class="frequency-rule">Episode counts come from your wearable. Episodes count after more than one minute; slouch time also includes shorter leans.</p>
-    </section>
-    <p data-device-target="summaryStatus" class="chart-caption" role="status"></p>
-    <section class="panel wearable-panel" aria-labelledby="wearable-heading">
-      <h2 id="wearable-heading">Your wearable</h2>
-      <% if fixture_mode %><p class="fixture-banner">SIMULATED WEARABLE · isolated test data</p><% end %>
-      <p data-device-target="connection" role="status">Checking Bluetooth support…</p>
-      <div class="wearable-actions">
-        <button type="button" class="competition-primary" data-device-target="connectButton" data-action="device#connectWearable">Connect wearable</button>
-        <button type="button" class="group-link" data-device-target="disconnectButton" data-action="device#disconnectWearable" disabled>Disconnect</button>
-        <button type="button" class="group-link" data-device-target="retryButton" data-action="device#retrySaving" hidden>Retry saving</button>
-      </div>
-      <p data-device-target="identity" class="wearable-identity">No wearable selected</p>
-      <p data-device-target="posture" class="wearable-posture">No live reading</p>
-      <p data-device-target="details"></p>
-      <p data-device-target="saving" role="status">No pending saves.</p>
-      <p class="chart-caption">Connect or disconnect the Bluetooth link here. Use BOOT on the wearable to calibrate. Disconnecting does not end tracking.</p>
-      <p class="chart-caption">Live readings here are separate from saved totals. Keep this page open until readings are saved; reloading loses pending uploads.</p>
-    </section>
-    <section class="panel history-panel">
-      <h2>Your last seven days</h2><p class="chart-caption">Saved sessions by first-seen date</p>
-      <table class="personal-history"><thead><tr><th scope="col">Day</th><th scope="col">Tracked min</th><th scope="col">Slouch min</th></tr></thead><tbody data-device-target="history">
-      <% @week.each do |date, summary| %><tr><th scope="row"><%= date.strftime("%a %-d") %></th><% if summary[:session_count].zero? %><td colspan="2">No data</td><% else %><td><%= number_with_precision(summary[:tracked_seconds] / 60.0, precision: 1) %></td><td><%= number_with_precision(summary[:slouch_seconds] / 60.0, precision: 1) %></td><% end %></tr><% end %>
-      </tbody></table>
-    </section>
-    <section class="panel muse-entry"><div><h2>Find your next adjustment</h2><p>Ask Muse for help with your desk setup and habits.</p></div><%= link_to "Ask Muse →", coach_path, class: "group-link" %></section>
+    <%= render "today" %>
+    <%= render "weekly" %>
+    <section class="panel muse-entry"><h2>Desk setup &amp; habits</h2><%= link_to "Ask Muse →", coach_path, class: "group-link" %></section>
   </main>
 </div>

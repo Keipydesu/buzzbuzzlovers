@@ -30,7 +30,7 @@ test('rejects malformed lengths, version, state, zero revision, duration inversi
   const book = new SessionBook()
   for (const changes of [{ sequence: 0 }, { sequence: '1' }, { slouch_seconds: 181 }, { session_id: 0 }, { episode_count: 65536 }]) assert.throws(() => book.accept(device, snapshot(changes), 'date'))
 })
-test('session-zero sensor errors display but never upload; short slouch time with no episode stays intact', () => {
+test('session-zero sensor errors display but never upload; legacy short slouch time with no episode stays intact', () => {
   const book = new SessionBook()
   assert.equal(book.accept(device, snapshot({ session_id: 0, state: 'sensor_error', tracked_seconds: 0, slouch_seconds: 0, episode_count: 0 }), 'now').upload, false)
   const short = book.accept(device, snapshot({ tracked_seconds: 20, slouch_seconds: 10, episode_count: 0 }), 'now')
@@ -120,11 +120,11 @@ test('expired authentication pauses without discarding; disposal ignores a late 
   const promise = late.queue.flush(); await new Promise(setImmediate); late.queue.dispose(); gate.resolve(); await promise
   assert.equal(late.saved.length, 0)
 })
-test('unknown/non-owned provisioning halts before any snapshot write', async () => {
+test('unavailable device registration halts before any snapshot write', async () => {
   const calls = []
   const h = harness(success, { request: async (_, opts) => { calls.push(opts.method); return { status: 404, body: { error: { code: 'device_not_found' } } } } })
   h.queue.enqueue(device, snapshot(), 'first'); h.tick(1000); await h.queue.flush()
-  assert.deepEqual(calls, ['POST']); assert.equal(h.queue.size, 1); assert.match(h.states.at(-1).message, /operator/)
+  assert.deepEqual(calls, ['POST']); assert.equal(h.queue.size, 1); assert.match(h.states.at(-1).message, /unavailable for this account/)
 })
 test('terminal liveness ignores repeated or older heartbeats while preserving the first terminal payload', () => {
   const book = new SessionBook()
@@ -133,11 +133,11 @@ test('terminal liveness ignores repeated or older heartbeats while preserving th
   assert.equal(book.accept(device, snapshot({ state: 'ended', sequence: 190 }), 'third').fresh, false)
   assert.equal(book.accept(device, snapshot({ state: 'ended', sequence: 189 }), 'fourth').fresh, false)
 })
-test('blocked provisioning and authentication messages remain visible as new heartbeats arrive', async () => {
+test('blocked registration and authentication messages remain visible as new heartbeats arrive', async () => {
   const h = harness(success, { request: async () => ({ status: 404, body: { error: { code: 'device_not_found' } } }) })
   h.queue.enqueue(device, snapshot(), 'first'); h.tick(1000); await h.queue.flush()
   h.queue.enqueue(device, snapshot({ sequence: 182 }), 'later')
-  assert.match(h.states.at(-1).message, /operator/)
+  assert.match(h.states.at(-1).message, /unavailable for this account/)
   h.queue.pause('Sign in again'); h.queue.enqueue(device, snapshot({ sequence: 183 }), 'later')
   assert.equal(h.states.at(-1).message, 'Sign in again')
 })

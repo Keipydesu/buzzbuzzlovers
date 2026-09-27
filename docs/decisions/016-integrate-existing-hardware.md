@@ -4,6 +4,8 @@ Date: 2026-09-26.
 
 Status: accepted integration direction; browser adapter details proposed, not implemented.
 
+Subsequent scope changes: [decision 017](017-ten-second-slouch-grace.md) supersedes preservation of the original timing semantics; [decision 018](018-mvp-first-connection-registration.md) supersedes the manual-provisioning prerequisite. Device-side classification, wire layout and existing ownership protection remain.
+
 ## Context
 
 The operator requested a full integration plan and API documentation based on the hardware source, then clarified that software should adapt to the hardware. The checked-in ESP32/BNO055 detector already publishes the proposed 16-byte identity and 20-byte v1 snapshot, while the browser transport is missing. The Rails schema and snapshot endpoint already represent those fields.

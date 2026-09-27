@@ -1,7 +1,7 @@
 const { test, expect, login, logout, noOverflow } = require('./support/helpers');
 async function connect(page) {
   await login(page);
-  await page.goto('/?ble_fixture=1');
+  await page.goto('/wearable?ble_fixture=1');
   await expect(page.getByText('SIMULATED WEARABLE · isolated test data')).toBeVisible();
   await page.getByRole('button', { name: 'Connect wearable', exact: true }).click();
   await expect(page.locator('[data-device-target="connection"]')).toContainText('Bluetooth connected');
@@ -9,6 +9,21 @@ async function connect(page) {
 async function emit(page, reading = {}) { await page.evaluate(reading => window.__bblFixture.emit(reading), reading); }
 const saving = page => page.locator('[data-device-target="saving"]');
 const posture = page => page.locator('[data-device-target="posture"]');
+
+test('qualified timing snapshots backfill ten seconds and refresh saved stats without counting short leans', async ({ page }) => {
+  await connect(page);
+  await emit(page, { sequence: 1, state: 'upright', tracked_seconds: 9, slouch_seconds: 0, episode_count: 0 });
+  await expect(saving(page)).toHaveText('Saved.');
+  await expect(page.locator('[data-device-target="todaySlouch"]')).toHaveText('0.0');
+  await emit(page, { sequence: 2, state: 'slouching', tracked_seconds: 10, slouch_seconds: 10, episode_count: 1 });
+  await expect(page.locator('[data-device-target="todayEpisodes"]')).toHaveText('1');
+  await expect(page.locator('[data-device-target="todaySlouch"]')).toHaveText('0.2');
+  await emit(page, { sequence: 3, state: 'upright', tracked_seconds: 13, slouch_seconds: 13, episode_count: 1 });
+  await expect(saving(page)).toHaveText('Saved.');
+  await expect(posture(page)).toHaveText('Non-slouch posture');
+  const result = await (await page.request.get('/api/v1/today')).json();
+  expect(result.summary).toMatchObject({ tracked_seconds: 13, slouch_seconds: 13, episode_count: 1 });
+});
 
 test('wearable fixture saves through the real API, refreshes totals, and separates disconnect from ending', async ({ page }, info) => {
   await connect(page);
@@ -26,7 +41,7 @@ test('wearable fixture saves through the real API, refreshes totals, and separat
   const last = await (await page.request.get('/api/v1/devices/00000000000000000000000000000001/session')).json();
   expect(last.session.ended).toBe(false);
   await noOverflow(page);
-  expect((await page.locator('#today').boundingBox()).y).toBeLessThan((await page.locator('.wearable-panel').boundingBox()).y);
+  await expect(page.getByRole('link', { name: 'View dashboard ↗' })).toHaveAttribute('target', '_blank');
   await info.attach('wearable.png', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await expect(page.locator('.tracker')).toHaveCSS('color', 'rgb(5, 30, 57)');
@@ -82,7 +97,7 @@ test('stale packets cannot replace live totals and a held heartbeat becomes stal
   await expect(saving(page)).toHaveText('Saved.');
 });
 
-test('switching identity clears old live state and unknown devices cannot be claimed or saved', async ({ page }) => {
+test('switching identity clears old live state and first connection registers an unused wearable', async ({ page }) => {
   await connect(page);
   await emit(page);
   await expect(saving(page)).toHaveText('Saved.');
@@ -91,10 +106,24 @@ test('switching identity clears old live state and unknown devices cannot be cla
   await page.getByRole('button', { name: 'Connect wearable', exact: true }).click();
   await expect(posture(page)).toHaveText('No live reading');
   await emit(page);
-  await expect(saving(page)).toContainText('Ask the operator');
+  await expect(saving(page)).toHaveText('Saved.');
   await expect(posture(page)).toContainText('Slouching');
+  expect((await (await page.request.get('/api/v1/devices')).json()).devices).toHaveLength(2);
+  await expect(page.locator('[data-device-target="todayTracked"]')).toHaveText('6.0');
+  expect((await (await page.request.get('/api/v1/today')).json()).summary.session_count).toBe(2);
+});
+
+test('a wearable already owned by another account stays live but cannot upload or change ownership', async ({ page }) => {
+  await connect(page);
+  await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
+  await page.evaluate(() => { window.__bblFixture.deviceId = '00000000000000000000000000000002'; });
+  await page.getByRole('button', { name: 'Connect wearable', exact: true }).click();
+  await emit(page);
+  await expect(saving(page)).toContainText('unavailable for this account');
+  await expect(posture(page)).toContainText('Slouching');
+  await expect(page.locator('[data-device-target="empty"]')).toBeVisible();
   expect((await (await page.request.get('/api/v1/devices')).json()).devices).toHaveLength(1);
-  expect((await (await page.request.get('/api/v1/today')).json()).summary.session_count).toBe(1);
+  expect((await (await page.request.get('/api/v1/today')).json()).summary.session_count).toBe(0);
 });
 
 test('pending data blocks accidental navigation; account switch in another tab pauses the old uploader', async ({ page, context }) => {
@@ -103,8 +132,8 @@ test('pending data blocks accidental navigation; account switch in another tab p
   await emit(page);
   await expect(saving(page)).toContainText('Saving unavailable');
   page.once('dialog', dialog => dialog.dismiss());
-  await page.getByRole('link', { name: 'Your groups / join a group' }).click();
-  await expect(page).toHaveURL('/?ble_fixture=1');
+  await page.getByRole('link', { name: '← Your tracking' }).click();
+  await expect(page).toHaveURL('/wearable?ble_fixture=1');
   const other = await context.newPage();
   await other.goto('/');
   await logout(other);
@@ -114,12 +143,14 @@ test('pending data blocks accidental navigation; account switch in another tab p
   expect((await (await other.request.get('/api/v1/today')).json()).summary.session_count).toBe(0);
 });
 
-test('normal dashboard never enables fixture controls and unsupported browsers retain saved history', async ({ page }) => {
+test('dashboard separates pairing and unsupported wearable page never enables fixtures', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, 'bluetooth', { value: undefined, configurable: true }));
   await login(page);
+  await expect(page.getByRole('button', { name: 'Connect wearable', exact: true })).toHaveCount(0);
+  await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
+  await page.getByRole('link', { name: 'Wearable →' }).click();
   await expect(page.getByRole('button', { name: 'Connect wearable', exact: true })).toBeDisabled();
   await expect(page.locator('[data-device-target="connection"]')).toContainText('Bluetooth unavailable');
-  await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
   await expect(page.getByText('SIMULATED WEARABLE · isolated test data')).toHaveCount(0);
   expect(await page.evaluate(() => typeof window.__bblFixture)).toBe('undefined');
 });
@@ -128,7 +159,7 @@ test('a save during summary refresh triggers another refresh instead of leaving 
   await connect(page);
   let release, holding = false, first = true;
   const gate = new Promise(resolve => { release = resolve; });
-  await page.route('**/api/v1/weekly', async route => {
+  await page.route('**/api/v1/today', async route => {
     if (first) { first = false; holding = true; await gate; }
     await route.continue();
   });

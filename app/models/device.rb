@@ -11,12 +11,15 @@ class Device < ApplicationRecord
   validates :id, presence: true, format: { with: DEVICE_ID_FORMAT }
   validates :first_seen_at, :last_seen_at, presence: true
 
-  # Administrative binding only. Legacy history cannot be attributed implicitly.
+  class OwnershipUnavailable < StandardError; end
+
+  # MVP first claim, also used by the operator task. Never transfer ownership or
+  # attribute legacy history. with_lock reloads after a competing claim commits.
   def self.provision!(device_id:, user:)
     device = register(device_id).device
     device.with_lock do
       return device if device.user_id == user.id
-      raise ArgumentError, "Device is already owned or has unowned history" if device.user_id || device.posture_sessions.exists?
+      raise OwnershipUnavailable, "Device is unavailable" if device.user_id || device.posture_sessions.exists?
       device.update!(user: user)
     end
     device

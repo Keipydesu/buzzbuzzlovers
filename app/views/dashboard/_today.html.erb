@@ -1,0 +1,11 @@
+    <section id="today" class="panel frequency-panel">
+      <h2>Today</h2>
+      <% if local_assigns[:diagnostics] %><p class="chart-caption">Saved totals</p><% end %>
+      <div class="session-metrics">
+        <div><span class="metric-label">Episodes</span><p data-device-target="todayEpisodes"><%= @summary[:episode_count] %></p></div>
+        <div><span class="metric-label">Tracked time</span><p><span data-device-target="todayTracked"><%= number_with_precision(@summary[:tracked_seconds] / 60.0, precision: 1) %></span><span>min</span></p></div>
+        <div><span class="metric-label">Slouch time</span><p><span data-device-target="todaySlouch"><%= number_with_precision(@summary[:slouch_seconds] / 60.0, precision: 1) %></span><span>min</span></p></div>
+      </div>
+      <p data-device-target="empty" <%= "hidden" unless @summary[:session_count].zero? %>>No saved activity today.</p>
+      <% if local_assigns[:diagnostics] %><p data-device-target="incomplete"><% if @summary[:incomplete_session_count].positive? %><%= @summary[:incomplete_session_count] %> unfinished sessions included.<% end %></p><% end %>
+    </section>

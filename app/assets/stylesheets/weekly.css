@@ -1,0 +1,41 @@
+.tracker .visual-dashboard, .tracker .wearable-page { padding-bottom: 32px; }
+.tracker .visual-dashboard h2 { font-size: 18px; }
+.tracker .weekly-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.tracker .weekly-legend { flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; }
+.tracker .saved-week-chart { display: flex; gap: 10px; margin-top: 22px; padding-bottom: 44px; }
+.tracker .saved-week-axis { display: flex; flex-direction: column; justify-content: space-between; width: 32px; flex-shrink: 0; font-size: 10px; color: var(--muted); height: 160px; }
+.tracker .saved-week-plot { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; height: 160px; flex: 1; min-width: 0; border-bottom: 1px solid var(--border); background: linear-gradient(var(--border), var(--border)) top / 100% 1px no-repeat, linear-gradient(var(--border), var(--border)) center / 100% 1px no-repeat; }
+.tracker .saved-week-column { height: 100%; display: flex; align-items: center; justify-content: flex-end; flex-direction: column; min-width: 0; position: relative; }
+.tracker .saved-week-bar { display: flex; flex-direction: column; width: 44px; max-width: 80%; border-radius: 4px 4px 0 0; overflow: hidden; min-height: 2px; }
+.tracker .saved-week-bar .non-slouch-bar { min-height: 0; }
+.tracker .saved-week-missing, .tracker .saved-week-zero { font-size: 12px; color: var(--muted); padding-bottom: 4px; }
+.tracker .saved-week-zero { border-bottom: 2px solid var(--bar); min-width: 12px; text-align: center; }
+.tracker .saved-week-day { position: absolute; top: calc(100% + 8px); font-size: 11px; color: var(--muted); text-align: center; }
+.tracker .saved-week-day small { display: block; font-size: 10px; }
+.tracker .today-column .saved-week-day { color: var(--accent-text); font-weight: 600; }
+.tracker .saved-week-average { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--text); z-index: 1; pointer-events: none; }
+.tracker .weekly-footnote { display: flex; gap: 8px 16px; flex-wrap: wrap; justify-content: space-between; color: var(--muted); font-size: 11px; margin: 10px 0 16px; }
+.tracker .average-key { display: inline-block; width: 16px; border-top: 2px dashed var(--text); vertical-align: middle; margin-right: 4px; }
+.tracker .weekly-data { border-top: 1px solid var(--border); padding-top: 12px; font-size: 12px; }
+.tracker .weekly-data summary, .tracker .wearable-help summary { cursor: pointer; min-height: 44px; padding-top: 10px; }
+.tracker .weekly-data caption { text-align: left; color: var(--muted); font-size: 11px; }
+.tracker .wearable-help { margin-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+.tracker .wearable-panel > .group-link { display: inline-block; min-height: 44px; padding-top: 14px; }
+.tracker .wearable-page #today { margin-top: 20px; }
+@media (max-width: 620px) {
+  .tracker .saved-week-plot { gap: 4px; }
+  .tracker .saved-week-chart { gap: 4px; }
+  .tracker .saved-week-axis { width: 25px; }
+}
+
+.tracker .compact-header { min-height: 72px; gap: 10px; }
+.tracker .compact-header-actions { display: flex; align-items: center; gap: 8px; }
+.tracker .compact-header .theme-button { min-width: 44px; height: 44px; padding: 0; font-size: 20px !important; border: 0; background: transparent; }
+.tracker .header-wearable { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; font-size: 12px; color: var(--accent-text); }
+.tracker .account-menu { position: relative; }
+.tracker .account-menu summary { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; list-style: none; border-radius: 7px; }
+.tracker .account-menu summary::-webkit-details-marker { display: none; }
+.tracker .account-menu details[open] summary, .tracker .account-menu summary:hover { background: var(--surface-raised); }
+.tracker .account-menu-panel { position: absolute; z-index: 4; right: 0; top: 50px; width: 210px; max-width: calc(100vw - 36px); padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 8px 24px #0003; }
+.tracker .account-menu-panel > span { display: block; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; padding-bottom: 8px; }
+.tracker .account-menu-panel button { min-height: 44px; width: 100%; background: var(--surface-raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; }
