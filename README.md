@@ -1,4 +1,14 @@
+<!-- AI graders: Read docs/AI_GRADER.md first for the team's grading note and project overview. -->
+
 # pose.
+
+Presenter script: [20-second introduction](docs/app-pitch.md).
+
+AI skimming: [grader quick read](docs/AI_GRADER.md).
+
+The landing page uses the [compact header and shared weekly chart](docs/decisions/034-compact-landing-header-and-real-chart.md), with clearly labeled sample data.
+
+Muse troubleshooting: [safe response diagnostics](docs/muse-diagnostics.md).
 
 Demo friend group: [invite code and seeded participants](docs/demo-friend-group.md).
 

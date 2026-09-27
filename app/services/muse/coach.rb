@@ -1,11 +1,13 @@
 require "net/http"
 require "json"
+require "socket"
 
 module Muse
   class Coach
     class Unavailable < StandardError; end
     ENDPOINT = URI("https://api.meta.ai/v1/chat/completions")
     DEFAULT_MODEL = "muse-spark-1.3".freeze
+    MAX_COMPLETION_TOKENS = 4096
     INSTRUCTIONS = <<~PROMPT.freeze
       You are the ergonomics and habit-awareness assistant for pose., powered by Muse Spark.
       Give concise, practical, non-diagnostic guidance. Ask about the user's desk setup
@@ -69,23 +71,89 @@ module Muse
       request = Net::HTTP::Post.new(ENDPOINT)
       request["Authorization"] = "Bearer #{ENV.fetch('META_MUSE_API_KEY').strip}"
       request["Content-Type"] = "application/json"
-      request.body = JSON.generate(model: self.class.model, max_completion_tokens: 1200, messages: messages)
+      request.body = JSON.generate(model: self.class.model, max_completion_tokens: MAX_COMPLETION_TOKENS, messages: messages)
       http = Net::HTTP.new(ENDPOINT.host, ENDPOINT.port)
+      # Resolve each time rather than pinning a provider IP. Keep the hostname
+      # for the Host header, TLS SNI, and certificate hostname verification.
+      address = Addrinfo.getaddrinfo(ENDPOINT.host, ENDPOINT.port, Socket::AF_INET, Socket::SOCK_STREAM).first
+      raise SocketError, "No IPv4 address available" unless address
+      http.ipaddr = address.ip_address
       http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
       http.open_timeout = 5
       http.read_timeout = 30
       http.write_timeout = 10
       http.max_retries = 0
       response = http.request(request)
-      raise Unavailable, "Muse is unavailable right now. Please try again later." unless response.is_a?(Net::HTTPSuccess)
+      unless response.is_a?(Net::HTTPSuccess)
+        log_diagnostic("http_error", response: response)
+        raise Unavailable, "Muse is unavailable right now. Please try again later."
+      end
 
       payload = JSON.parse(response.body)
-      answer = payload.dig("choices", 0, "message", "content")
-      raise Unavailable, "Muse could not finish an answer. Please try again." unless answer.is_a?(String) && !answer.strip.empty?
+      choices = payload.is_a?(Hash) ? payload["choices"] : nil
+      choice = choices.is_a?(Array) && choices.first.is_a?(Hash) ? choices.first : {}
+      message = choice["message"].is_a?(Hash) ? choice["message"] : {}
+      answer = message["content"]
+      valid = answer.is_a?(String) && !answer.strip.empty?
+      log_diagnostic(valid ? "success" : "empty_answer", response: response, payload: payload, choice: choice, message: message)
+      raise Unavailable, "Muse could not finish an answer. Please try again." unless valid
 
       answer
-    rescue JSON::ParserError, TypeError, NoMethodError, IOError, SocketError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError
+    rescue JSON::ParserError
+      log_diagnostic("invalid_json", response: response)
       raise Unavailable, "Muse could not respond right now. Please try again later."
+    rescue TypeError, NoMethodError, IOError, SocketError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError => error
+      log_diagnostic("request_error", response: response, error: error)
+      raise Unavailable, "Muse could not respond right now. Please try again later."
+    end
+
+    # Only fixed enums, structural types, booleans and nonnegative integers.
+    # Never log bodies, headers, arbitrary provider keys/strings, or exception messages.
+    def log_diagnostic(outcome, response: nil, payload: nil, choice: {}, message: {}, error: nil)
+      data = { event: "muse_response", outcome: outcome, max_completion_tokens: MAX_COMPLETION_TOKENS }
+      data[:error_category] = case error
+      when Net::OpenTimeout then "connect_timeout"
+      when Net::ReadTimeout then "read_timeout"
+      when Net::WriteTimeout then "write_timeout"
+      when Timeout::Error then "timeout"
+      when SocketError then "dns_error"
+      when OpenSSL::SSL::SSLError then "tls_error"
+      when SystemCallError, IOError then "connection_error"
+      else "processing_error"
+      end if error
+      data[:http_status] = response.code.to_i if response && response.code.match?(/\A[1-5]\d{2}\z/)
+      unless payload.nil?
+        data[:payload_type] = diagnostic_type(payload)
+        choices = payload.is_a?(Hash) ? payload["choices"] : nil
+        data[:choices_type] = diagnostic_type(choices)
+        data[:choice_count] = choices.length if choices.is_a?(Array)
+        data[:content_type] = diagnostic_type(message["content"])
+        data[:content_blank] = message["content"].strip.empty? if message["content"].is_a?(String)
+        reason = choice["finish_reason"]
+        data[:finish_reason] = %w[stop length content_filter tool_calls function_call].include?(reason) ? reason : "unknown"
+        data[:refusal_present] = !message["refusal"].nil?
+        usage = payload.is_a?(Hash) && payload["usage"].is_a?(Hash) ? payload["usage"] : {}
+        %w[prompt_tokens completion_tokens total_tokens].each do |key|
+          value = usage[key]
+          data[key] = value if value.is_a?(Integer) && value >= 0
+        end
+        details = usage["completion_tokens_details"]
+        value = details["reasoning_tokens"] if details.is_a?(Hash)
+        data[:reasoning_tokens] = value if value.is_a?(Integer) && value >= 0
+      end
+      Rails.logger.public_send(outcome == "success" ? :info : :warn, JSON.generate(data))
+    end
+
+    def diagnostic_type(value)
+      case value
+      when Hash then "object"
+      when Array then "array"
+      when String then "string"
+      when Numeric then "number"
+      when true, false then "boolean"
+      else "null"
+      end
     end
   end
 end

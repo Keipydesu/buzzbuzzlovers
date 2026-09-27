@@ -308,10 +308,10 @@ body { margin: 0; }
 .tracker .muse-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .tracker .muse-prompts button { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 10px 12px; border-radius: 0; text-align: left; min-height: 44px; font-size: 12px; transition: transform .2s, border-color .2s; }
 .tracker .muse-prompts button:hover { transform: translateY(-2px); border-color: var(--gold); }
-.tracker .muse-composer { display: flex; align-items: flex-end; gap: 8px; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 0; transition: border-color .2s, box-shadow .2s; }
-.tracker .muse-composer:focus-within { border-color: var(--gold); box-shadow: 0 0 0 2px var(--surface-raised); }
-.tracker .muse-composer textarea { flex: 1; min-width: 0; resize: vertical; max-height: 180px; background: transparent; color: var(--text); border: 0; font: inherit; font-size: 16px; padding: 8px; line-height: 1.5; }
-.tracker .muse-composer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; border-radius: 0; border: 0; min-height: 44px; cursor: pointer; transition: transform .2s; }
+.tracker .muse-composer { display: flex; align-items: flex-end; gap: 12px; }
+.tracker .muse-composer textarea { flex: 1; width: 0; min-width: 0; box-sizing: border-box; resize: none; height: 44px; min-height: 44px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 0; font: inherit; font-size: 16px; padding: 9px 12px; line-height: 24px; }
+.tracker .muse-composer textarea:focus { border-color: var(--gold); outline: 2px solid var(--gold); outline-offset: 2px; }
+.tracker .muse-composer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; box-sizing: border-box; border-radius: 0; border: 0; height: 44px; min-height: 44px; cursor: pointer; transition: transform .2s; }
 .tracker .muse-composer button:hover:not(:disabled) { transform: translateY(-2px); }
 .tracker .muse-composer button:disabled { opacity: .5; cursor: wait; }
 .tracker .muse-typing { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; padding: 4px 4px 18px; }
@@ -335,7 +335,6 @@ body { margin: 0; }
   .tracker .muse-bubble p { font-size: 13px; }
   .tracker .muse-prompts { gap: 6px; margin: 12px 0; }
   .tracker .muse-prompts button { flex: 1 1 auto; }
-  .tracker .muse-composer { gap: 4px; padding: 6px; }
 }
 @media (pointer: coarse) { .tracker .muse-keyboard-hint { display: none; } }
 @media (prefers-reduced-motion: reduce) { .tracker .muse-chat *, .tracker .muse-chat *::before, .tracker .muse-chat *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
