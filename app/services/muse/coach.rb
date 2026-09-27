@@ -5,6 +5,7 @@ module Muse
   class Coach
     class Unavailable < StandardError; end
     ENDPOINT = URI("https://api.meta.ai/v1/chat/completions")
+    DEFAULT_MODEL = "muse-spark-1.3".freeze
     INSTRUCTIONS = <<~PROMPT.freeze
       You are the ergonomics and habit-awareness assistant for pose., powered by Muse Spark.
       Give concise, practical, non-diagnostic guidance. Ask about the user's desk setup
@@ -32,7 +33,11 @@ module Muse
     PROMPT
 
     def self.configured?
-      ENV["META_MUSE_API_KEY"].to_s.strip != "" && ENV["META_MUSE_MODEL"].to_s.strip != ""
+      ENV["META_MUSE_API_KEY"].to_s.strip != ""
+    end
+
+    def self.model
+      ENV.fetch("META_MUSE_MODEL", "").strip.presence || DEFAULT_MODEL
     end
 
     def call(question, user: nil)
@@ -62,9 +67,9 @@ module Muse
       messages << { role: "user", content: question }
 
       request = Net::HTTP::Post.new(ENDPOINT)
-      request["Authorization"] = "Bearer #{ENV.fetch('META_MUSE_API_KEY')}"
+      request["Authorization"] = "Bearer #{ENV.fetch('META_MUSE_API_KEY').strip}"
       request["Content-Type"] = "application/json"
-      request.body = JSON.generate(model: ENV.fetch("META_MUSE_MODEL"), max_completion_tokens: 1200, messages: messages)
+      request.body = JSON.generate(model: self.class.model, max_completion_tokens: 1200, messages: messages)
       http = Net::HTTP.new(ENDPOINT.host, ENDPOINT.port)
       http.use_ssl = true
       http.open_timeout = 5

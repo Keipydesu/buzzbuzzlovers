@@ -1,6 +1,45 @@
 require "test_helper"
 
 class Muse::CoachTest < ActiveSupport::TestCase
+  test "key alone sends the default model and server-side authorization" do
+    with_muse_environment(key: " test-key ", model: nil) do
+      assert Muse::Coach.configured?
+      http = Net::HTTP.new("example.invalid", 443)
+      response = Net::HTTPOK.new("1.1", "200", "OK")
+      response.define_singleton_method(:body) { JSON.generate(choices: [ { message: { content: "Try a short break." } } ]) }
+      captured_request = nil
+      with_method_replaced(Net::HTTP, :new, ->(*) { http }) do
+        with_method_replaced(http, :request, lambda { |request|
+          captured_request = request
+          response
+        }) do
+          assert_equal "Try a short break.", Muse::Coach.new.call("Desk advice?")
+        end
+      end
+      assert_equal "Bearer test-key", captured_request["Authorization"]
+      assert_equal "muse-spark-1.3", JSON.parse(captured_request.body)["model"]
+      assert_equal "/v1/chat/completions", captured_request.path
+    end
+  end
+
+  test "blank model uses the default and explicit overrides are preserved" do
+    with_muse_environment(key: "test-key", model: "  ") do
+      assert_equal "muse-spark-1.3", Muse::Coach.model
+    end
+    with_muse_environment(key: "test-key", model: " custom-model ") do
+      assert_equal "custom-model", Muse::Coach.model
+    end
+  end
+
+  test "missing or blank key leaves live Muse unconfigured" do
+    [ nil, "", "  " ].each do |key|
+      with_muse_environment(key: key, model: "custom-model") do
+        assert_not Muse::Coach.configured?
+        assert_raises(Muse::Coach::Unavailable) { Muse::Coach.new.call("Desk advice?") }
+      end
+    end
+  end
+
   test "DNS failure becomes Unavailable without exposing the hostname" do
     http = Net::HTTP.new("example.invalid", 443)
     with_method_replaced(Muse::Coach, :configured?, -> { true }) do
@@ -59,6 +98,15 @@ class Muse::CoachTest < ActiveSupport::TestCase
   end
 
   private
+
+  def with_muse_environment(key:, model:)
+    previous = ENV.values_at("META_MUSE_API_KEY", "META_MUSE_MODEL")
+    ENV["META_MUSE_API_KEY"] = key
+    ENV["META_MUSE_MODEL"] = model
+    yield
+  ensure
+    ENV["META_MUSE_API_KEY"], ENV["META_MUSE_MODEL"] = previous
+  end
 
   # Stubs configured?/ENV.fetch/Net::HTTP for the duration of the block,
   # returning the parsed `messages` array sent to Net::HTTP#request on each

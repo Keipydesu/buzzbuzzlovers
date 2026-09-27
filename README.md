@@ -173,6 +173,37 @@ requires the updated firmware; BOOT remains available on older wearables.
 
 ## Posture context and Muse sample
 
+### Connect live Muse locally
+
+Open the repository-root `.env` (copy `.env.example` only if `.env` does not exist)
+and fill in this line with your Meta Model API key:
+
+```dotenv
+META_MUSE_API_KEY=your-key-here
+```
+
+Restart Rails with `bin/rails server -b 127.0.0.1`, sign in, and open **Ask Muse**
+at `/coach` or the chat at the bottom of the dashboard. Its label changes to
+**Live Muse** when a key is configured. Send a message to verify your key's access;
+the label alone does not confirm provider authentication. Keep the key in `.env`,
+which is gitignored; it is used only by the Rails server.
+
+The app defaults to `muse-spark-1.3`, following the
+[Meta Model API quickstart](https://dev.meta.ai/docs/cookbook/quickstart-chat-completions).
+`META_MUSE_MODEL` is an optional override for a model available to your account.
+Only a valid key with access to that model is required. Existing exported shell
+variables take precedence over `.env`; `SKIP_DOTENV=1` disables loading that file.
+The local-demo commands above use that switch for database isolation, so either
+omit it when starting the server or supply the Muse key through its environment.
+Live chat remains limited to development/test while public deployment is deferred.
+
+Without a key, or while signed out, the chat displays **Interactive demo** and
+answers with keyword-based scripted examples in your browser. No API requests are
+made by that demo, and its messages clear on reload. This is separate from the
+historical standalone posture simulator in `demo/`; run the Rails app at the
+repository root for Muse. Setup, request payloads, and fallback behavior have
+automated coverage; a live provider response still requires your key.
+
 The dashboard and public landing page include sourced posture-awareness guidance and a continuing Muse chat below the main content. Both retain the existing navy/gold light and dark themes. Signed-in users with Muse configured get live replies using server-owned recent conversation and a summary of their own tracked totals, as disclosed in the chat. Otherwise, a clearly labeled interactive demo uses local scripted replies. Live context stays in local server memory for up to 30 minutes of inactivity; New chat clears it. Demo chat clears on navigation/reload. Message/typing animations respect reduced-motion settings. See [the chat decision](docs/decisions/030-continuing-muse-chat.md).
 
 The earlier [standalone simulated demo](docs/DEMO.md) remains available in `demo/`; it is separate from the current authenticated app and its hardware integration.

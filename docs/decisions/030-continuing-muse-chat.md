@@ -4,6 +4,9 @@ Date: 2026-09-26.
 
 Status: accepted user request; supersedes the static sample conversation in decision 029.
 
+The requirement to set a model explicitly is superseded by
+[decision 031](031-muse-api-key-setup.md); conversation and demo behavior remain unchanged.
+
 ## Decision
 
 Replace the sample transcript with an interactive chat at the bottom of the dashboard and landing page, and reuse it on the coach page. Keep the existing color themes. Add message entrances, a thinking indicator, gentle avatar motion, and input/button transitions; respect reduced-motion preferences.
