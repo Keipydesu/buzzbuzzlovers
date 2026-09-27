@@ -28,8 +28,14 @@ use your own account to join and inspect the rankings.
 
 ## Seed again
 
-The seed is opt-in, local PostgreSQL only, and limited to development/test.
-Run against the same local database as your app:
+Run `bin/rails db:seed` after preparing your local development database. Development
+loads synthetic samples by default; set `POSE_DEMO_SEED=0` to skip them (including
+during `db:setup`). Tests require `POSE_DEMO_SEED=1`. The helper permits only local
+PostgreSQL in development/test, even when explicitly enabled. Production has no
+required seeds and skips by default.
+
+Run against the same local database as your app with an explicit local connection:
+
 
 ```sh
 env -u PRIMARY_DATABASE_URL -u PGHOST -u PGSERVICE -u PGSERVICEFILE -u PGDATABASE -u PGUSER -u PGPASSWORD SKIP_DOTENV=1 RAILS_ENV=development DATABASE_URL=postgresql://127.0.0.1:5432/buzzbuzzlovers_development POSE_DEMO_SEED=1 bin/rails db:seed
