@@ -19,10 +19,10 @@ module Api
             message: "device_id must be 32 lowercase hex characters")
         end
 
-        device = current_user.devices.find_by(id: device_id)
-        raise ApiError.new(status: :not_found, code: "device_not_found", message: "Device is not registered") unless device
-
+        device = Device.provision!(device_id: device_id, user: current_user)
         render json: { device: serialize(device) }, status: :ok
+      rescue Device::OwnershipUnavailable
+        raise ApiError.new(status: :not_found, code: "device_not_found", message: "Device is unavailable for this account")
       end
 
       private

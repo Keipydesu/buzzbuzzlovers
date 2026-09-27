@@ -10,7 +10,7 @@ The app now has username/password accounts, saved friend groups, invite links/co
 
 The dashboard shows saved personal totals. The old synthetic half-hour chart is no longer shown as live data. Browser BLE transport, live state, and queued uploads are implemented; physical wearable verification remains pending. Tiger DB integration is preserved, including accepted snapshot history. The MVP will be demonstrated locally; deployment is deferred. Muse at `/coach` remains development/test-only and needs local API credentials; no live Muse response has been verified. Historical UI descriptions below describe earlier previews.
 
-**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. The authenticated dashboard at `/` displays saved personal and group totals. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, and accounts, authentication, and administrator-provisioned device ownership are implemented. The browser BLE adapter and live dashboard are implemented with synthetic automated coverage; physical device verification is pending. The earlier JavaScript prototype has been discarded.
+**Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. The authenticated dashboard at `/` displays saved personal and group totals. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, and accounts, authentication, and automatic first-use device registration are implemented. The browser BLE adapter and live dashboard are implemented with synthetic automated coverage; physical device verification is pending. The earlier JavaScript prototype has been discarded.
 
 ## The idea
 
@@ -57,11 +57,11 @@ For the software work, read [the app plan](docs/APP_PLAN.md) and [the app API pr
 
 ## Hardware integration
 
-The checked-in [ESP32/BNO055 detector](Hardware/slouch_detector/slouch_detector.ino) already publishes BLE identity and cumulative posture snapshots. Read the [full integration plan](docs/hardware-integration-plan.md), [BLE interface](docs/ble-protocol.md), and [current Rails API](docs/app-api.md). The browser adapter is implemented. Software will follow current hardware behavior under [decision 016](docs/decisions/016-integrate-existing-hardware.md); firmware remains unchanged and has not been compiled/flashed by this work.
+The checked-in [ESP32/BNO055 detector](Hardware/slouch_detector/slouch_detector.ino) already publishes BLE identity and cumulative posture snapshots. Read the [full integration plan](docs/hardware-integration-plan.md), [BLE interface](docs/ble-protocol.md), and [current Rails API](docs/app-api.md). The browser adapter is implemented. The follow-up [timing decision](docs/decisions/017-ten-second-slouch-grace.md) qualifies at 10 seconds, credits that candidate, and resets after 3 seconds upright. [Automatic registration](docs/decisions/018-mvp-first-connection-registration.md) removes the manual binding prerequisite. Flash the updated sketch and adjacent header to use the new timing; no ESP32 build or flashing has been performed here.
 
 ### Connect the wearable locally
 
-1. Start the authenticated local app using [local demo setup](docs/local-demo.md), sign in, and have the operator bind the 32-character BLE identity using [device provisioning](docs/authentication-mvp.md#device-provisioning).
+1. Start the authenticated local app using [local demo setup](docs/local-demo.md), sign in. A new wearable registers automatically to that account on its first session upload; see [registration](docs/authentication-mvp.md#device-registration).
 2. On the dashboard, choose **Connect wearable** in a compatible Web Bluetooth browser. Select `bbl-posture`, then sit upright and press BOOT on the wearable to start/calibrate.
 3. Live posture and saving status are separate. Saved Today/Weekly totals refresh after uploads. Disconnecting does not end the firmware session; keep the page open until pending readings are saved. Navigation/reload can lose the in-memory queue.
 
@@ -79,7 +79,7 @@ Direct model/schema/migration review confirmed that this preview needs no data-m
 
 Preview validation (September 26, 2026): `bundle check`, Ruby/route RuboCop checks, and Rails template rendering passed. Booted with `env -u DATABASE_URL bin/rails server -b 127.0.0.1 -p 3001 -P tmp/pids/ui-preview.pid` for browser checks. Verified both themes, theme persistence on reload, all four preview states, the data table, and responsive layout at 390px and 320px (no horizontal overflow at 320px). No new dependencies were installed and no database test suite or hardware checks were run for this visual change.
 
-Latest UI revision: daily episode bars now lead the page, weekly tracked-time bars include a mean across recorded days, and the header uses `bbl` with no sidebar navigation. Browser checks covered populated and empty charts, both themes, and 320px layout; RuboCop (`--cache false`) and whitespace checks passed. The more-than-60-second rule is documented for firmware implementation, not enforced by this mockup.
+Latest UI revision: daily episode bars now lead the page, weekly tracked-time bars include a mean across recorded days, and the header uses `bbl` with no sidebar navigation. Browser checks covered populated and empty charts, both themes, and 320px layout; RuboCop (`--cache false`) and whitespace checks passed. The then-documented more-than-60-second rule was not enforced by this mockup and has since been superseded by [decision 017](docs/decisions/017-ten-second-slouch-grace.md)'s 10-second qualification.
 
 ### Local setup
 

@@ -4,7 +4,7 @@
 
 ## Current deployment and ownership
 
-The immediate target is an authenticated local demo under [decision 015](decisions/015-local-mvp-demo.md). Username/password login uses Rails cookie sessions; device ownership is administrator-provisioned. See [account setup](authentication-mvp.md). All data endpoints require authentication (`401`); unknown and non-owned devices return the same `404`. Registration acknowledges an existing owned binding (`200`); it cannot create or claim a device.
+The immediate target is an authenticated local demo under [decision 015](decisions/015-local-mvp-demo.md). Username/password login uses Rails cookie sessions; unused devices register to the signed-in account on first upload preflight under [decision 018](decisions/018-mvp-first-connection-registration.md). See [account setup](authentication-mvp.md). All data endpoints require authentication (`401`); unknown/non-owned devices return `404` on reads/uploads. Registration claims unused identities or empty unowned rows, and acknowledges same-owner retries (`200`). Other-owned devices and unowned legacy history return `404` on registration.
 
 Mutations send `Content-Type: application/json`, `X-CSRF-Token` from the rendered Rails page, and same-origin cookies. Keep request-forgery protection. Login/signup are browser form flows, not JSON endpoints in this API. A BLE device ID is public identity, not an ownership credential. No client-supplied user ID is accepted. The current `users` table has no timezone field: personal summaries and ingestion use configured `DEMO_TIMEZONE` (default `America/New_York`), with each session's calendar metadata frozen on creation. Weekly group rankings use the separate Monday–Sunday rules in [decision 014](decisions/014-weekly-competition-implementation-defaults.md).
 
@@ -20,7 +20,7 @@ Malformed path segments can fail route constraints before reaching a controller 
 
 | Method and path | Purpose | Success |
 | --- | --- | --- |
-| `POST /api/v1/devices` | Acknowledge an administrator-provisioned owned BLE identity | `200` |
+| `POST /api/v1/devices` | Register an unused BLE identity to this account, or acknowledge its existing ownership | `200` |
 | `GET /api/v1/devices` | List registered devices for reload/reconnect UI | `200` |
 | `PUT /api/v1/devices/:device_id/sessions/:device_session_id/snapshot` | Create or reconcile the latest cumulative snapshot | `200` with disposition |
 | `GET /api/v1/devices/:device_id/session` | Read the last-known session for this device | `200`, session may be null |
@@ -31,13 +31,13 @@ Path `device_id` is exactly 32 lowercase hex characters decoded from the 16-byte
 
 ## Register and list devices
 
-After reading the exact 16-byte identity, verify its existing account binding:
+After reading the exact 16-byte identity, register it to the signed-in account or acknowledge its existing ownership on first positive-session upload:
 
 ```json
 {"device_id":"00112233445566778899aabbccddeeff"}
 ```
 
-The response is `{"device":{"device_id":"00112233445566778899aabbccddeeff"}}`. Repeating acknowledgement for an owned ID returns the same object and never erases data. A `404 device_not_found` requires an operator to provision it using the task in [account setup](authentication-mvp.md); repeated POSTs cannot enroll it. Never reveal whether another account owns it. List returns `{"devices":[{"device_id":"00112233445566778899aabbccddeeff"}]}` or an empty array. Device selection is not a Bluetooth connection; the user still needs the browser's permission flow.
+The response is `{"device":{"device_id":"00112233445566778899aabbccddeeff"}}`. Repeating acknowledgement for an owned ID returns the same object and never erases data. A `404 device_not_found` means the identity is unavailable to this account (another owner or legacy unowned history); repeated POSTs cannot transfer it. Registration is trust on first HTTP claim, not proof of possession. Owner/history details are not disclosed; unused identity availability is observable. List returns `{"devices":[{"device_id":"00112233445566778899aabbccddeeff"}]}` or an empty array. Device selection is not a Bluetooth connection; the user still needs the browser's permission flow.
 
 ## Ingest a snapshot
 
@@ -124,7 +124,7 @@ Errors use `{"error":{"code":"snapshot_conflict","message":"This revision has di
 | `400` | Malformed JSON or invalid path format | Show request error; do not retry unchanged |
 | `401` | Missing/expired login | Pause uploads; reauthenticate as the same account before resuming |
 | `403` | Failed CSRF/origin checks | Stop upload; refresh/re-establish app session |
-| `404` | `device_not_found`: unknown/non-owned binding; or unmatched route | For structured device error, request administrator provisioning; for routing/non-JSON error, fix the request. Do not auto-claim or blindly retry |
+| `404` | `device_not_found`: unavailable registration, unknown/non-owned read/upload; or unmatched route | For structured device error, use the original account or another wearable; for routing/non-JSON error, fix the request. Do not transfer ownership or blindly retry |
 | `409` | `snapshot_conflict`, `session_ended` | Stop automatic retries; apply the narrowly defined terminal-heartbeat reconciliation below for `session_ended` only |
 | `413` / `415` | Body too large / wrong content type | Correct request format |
 | `422` | `invalid_snapshot`, `invalid_observation`, `counter_regression` | Show validation error; no unchanged retry |
@@ -132,7 +132,7 @@ Errors use `{"error":{"code":"snapshot_conflict","message":"This revision has di
 
 ## Browser adapter and synchronization
 
-1. On a click, discover the advertised service; read and validate identity; acknowledge its provisioned binding with Rails. If Rails is temporarily unavailable, live display may proceed with an explicit unsaved state and bounded retry. Bind the queue to the logged-in account, and pause saving on `401`, `403`, or a missing binding.
+1. On a click, discover the advertised service; read and validate identity; register its identity with Rails on first positive-session upload. If Rails is temporarily unavailable, live display may proceed with an explicit unsaved state and bounded retry. Bind the queue to the logged-in account, and pause saving on `401`, `403`, or a missing binding.
 2. Subscribe, then read the cached snapshot. Decode the exact 20-byte format; reject invalid versions/states. Validate by session and revision so a late read cannot overwrite a newer notification. Serialize GATT operations and attach handlers to the active connection generation.
 3. Live status uses BLE only: unsupported, disconnected, connecting, connected, or stale; posture state is a separate value. No new valid revision for three seconds means stale while tracking. A held BOOT button may cause this without a disconnect. Ended status is terminal; display link/liveness separately and never imply continued tracking. Sensor error is distinct from a connection failure. On tab resume, mark live status unknown until a fresh read/heartbeat succeeds.
 4. Keep the latest unsaved cumulative snapshot per session in memory, preserving each session's first-observed time. Send at most one upload/preflight request at a time, coalescing during a one-second upload interval. Terminal snapshots are queued immediately after any in-flight request.
@@ -146,7 +146,7 @@ Use a transport interface (`connect`, `disconnect`, `onSnapshot`, `onStatus`) wi
 
 [Decision 016](decisions/016-integrate-existing-hardware.md) makes the checked-in firmware the integration baseline. These rules are implemented by `app/javascript/ble/` and the Stimulus device controller:
 
-- `slouching` and `slouch_seconds` include forward leans immediately, including short leans that never qualify. Only `episode_count` waits for more than 60 continuous seconds. Do not delay/filter/reclassify the values or run another episode timer. LED warning timing is separate and is not transmitted.
+- Current firmware qualifies at 10 seconds, credits the full candidate once, counts one episode, and stops after 3 continuous upright seconds (including recovery time). Shorter leans contribute nothing. See [decision 017](decisions/017-ten-second-slouch-grace.md). Transport the measured values unchanged; do not run another browser timer or reinterpret old-firmware counters.
 - Display session `0` diagnostics but do not enqueue them. The first BOOT calibration allocates a positive session; recalibration retains that session's counters. Reboot returns to session `0`; the next calibration normally allocates a higher session ID. Scope sequence ordering to `(device_id, session_id)`, with a connection-generation guard for old callbacks. Do not let a delayed older session replace the currently observed newer session.
 - The device has no ordinary end action. Disconnect, stale readings, page closure, and reboot never synthesize `ended`. Save known totals and show the old session as incomplete. Power-off can lose unsaved totals. Same-session reconnect recovers the latest RAM counters; it cannot recover overwritten sessions.
 - On the first `ended` snapshot, latch its exact payload/revision and retry that immutable snapshot until acknowledged. Later firmware heartbeats with the same session, version, terminal state, and counters but a higher sequence are transport liveness only: suppress their uploads. A state/counter change after ended is a protocol error. No fabricated revision or rewritten counter is permitted.

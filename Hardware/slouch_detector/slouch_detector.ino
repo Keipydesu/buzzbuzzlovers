@@ -2,7 +2,9 @@
 //
 // Press BOOT while sitting upright to set the "upright" pitch (z). Leaning forward
 // past THRESHOLD_DEG is a detected slouch; leaning back never counts. The red LED
-// blinks after SLOUCH_MS of continuous slouch and stops after RECOVER_MS upright.
+// blinks when a 10-second lean qualifies and stops after 3 seconds upright.
+// Qualification credits the initial 10 seconds and counts one episode; shorter
+// leans count for neither. Recovery time stays in the same slouch episode.
 //
 // Results are published over BLE following docs/ble-protocol.md (draft v1) in the
 // buzzbuzzlovers repo: a readable 16-byte device identity, plus a 20-byte session
@@ -18,12 +20,10 @@
 #include <esp_random.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
+#include "posture_timing.h"
 
 // --- Tuning ---
 const float THRESHOLD_DEG = 10.0;          // how far forward you can lean before it counts
-const unsigned long SLOUCH_MS = 10000;     // continuous slouch before the LED alert
-const unsigned long RECOVER_MS = 3000;     // time back upright before the alert clears
-const unsigned long EPISODE_MS = 60000;    // decision 006: count an episode only after MORE than this
 const unsigned long SETTLE_MS = 1000;      // pause after pressing BOOT so you can get still
 const unsigned long CALIBRATE_MS = 3000;   // how long to average the baseline
 const unsigned long PUBLISH_MS = 1000;     // BLE heartbeat interval
@@ -65,7 +65,7 @@ State state = STATE_IDLE;
 uint32_t sessionId = 0;       // 0 = no session yet
 uint32_t sequence = 0;
 uint64_t trackedMs = 0;       // time spent upright or slouching
-uint64_t slouchMs = 0;        // time spent slouching
+uint64_t slouchMs = 0;        // qualified slouch time, including entry/recovery windows
 uint16_t episodeCount = 0;
 bool stateChanged = true;
 unsigned long lastPublish = 0;
@@ -78,15 +78,8 @@ bool calHaveFirst = false;
 float calFirst = 0, calSum = 0;
 int calCount = 0;
 
-// Slouch detection
-bool leaning = false;
-unsigned long leanStart = 0;    // millis() when the current continuous slouch began
-bool episodeCounted = false;
-
-// LED alert
-bool alertOn = false;
-bool recovering = false;
-unsigned long inStart = 0;      // millis() when you came back upright while alerting
+// Shared qualification, episode and recovery timing (decision 017).
+PostureTiming postureTiming;
 
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *server) override {
@@ -109,15 +102,12 @@ void setState(State s) {
 
 // Blink the LED while alerting, off otherwise. Uses millis() so it never pauses the loop.
 void updateLed() {
-  bool on = alertOn && (millis() / BLINK_MS) % 2 == 0;
+  bool on = postureTiming.slouching() && (millis() / BLINK_MS) % 2 == 0;
   digitalWrite(LED_PIN, on ? HIGH : LOW);
 }
 
 void clearDetection() {
-  leaning = false;
-  episodeCounted = false;
-  alertOn = false;
-  recovering = false;
+  postureTiming.clear();
 }
 
 // Read one BNO055 register; returns -1 if the sensor doesn't answer.
@@ -261,30 +251,10 @@ void updateCalibration(unsigned long now, bool ok) {
   baseline = calFirst + calSum / calCount;
   setState(STATE_UPRIGHT);
   Serial.printf("Upright baseline: %.2f deg (%d samples)\n", baseline, calCount);
-  Serial.printf("Slouch = below %.2f deg. LED after %lu s, episode after %lu s. "
+  Serial.printf("Slouch = below %.2f deg. Qualifies after %lu s, clears after %lu s upright. "
                 "Press BOOT anytime to recalibrate.\n",
-                baseline - THRESHOLD_DEG, SLOUCH_MS / 1000, EPISODE_MS / 1000);
-}
-
-void updateAlert(unsigned long now) {
-  if (leaning) {
-    recovering = false;   // leaned forward again, restart the recovery timer
-    if (!alertOn && now - leanStart >= SLOUCH_MS) {
-      alertOn = true;
-      Serial.println(">>> ALERT: slouching");
-    }
-  } else if (alertOn) {
-    // Must stay upright (or leaning back) for RECOVER_MS before the alert clears
-    if (!recovering) {
-      recovering = true;
-      inStart = now;
-    }
-    if (now - inStart >= RECOVER_MS) {
-      alertOn = false;
-      recovering = false;
-      Serial.println(">>> alert cleared (back upright)");
-    }
-  }
+                baseline - THRESHOLD_DEG, (unsigned long)PostureTiming::SLOUCH_MS / 1000,
+                (unsigned long)PostureTiming::RECOVER_MS / 1000);
 }
 
 void classify(unsigned long now, bool ok) {
@@ -298,32 +268,25 @@ void classify(unsigned long now, bool ok) {
   float z = readPitch();
   float diff = angleDiff(z, baseline);   // negative = leaning forward
 
-  if (diff < -THRESHOLD_DEG) {
-    if (!leaning) {
-      leaning = true;
-      leanStart = now;
-      episodeCounted = false;
-    }
-    if (!episodeCounted && now - leanStart > EPISODE_MS) {
-      episodeCounted = true;
-      if (episodeCount == UINT16_MAX) {
-        // Never wrap a counter: end the session instead.
-        setState(STATE_ENDED);
-        Serial.println("Episode counter full; session ended");
-        return;
-      }
-      episodeCount++;
-      Serial.printf(">>> episode %u counted\n", episodeCount);
-    }
-    setState(STATE_SLOUCHING);
-  } else {
-    leaning = false;
-    setState(STATE_UPRIGHT);
+  const PostureTiming::Update timing = postureTiming.update(now, diff < -THRESHOLD_DEG);
+  if (timing.episode && episodeCount == UINT16_MAX) {
+    // Never wrap a counter: end the session before accepting a new episode.
+    clearDetection();
+    setState(STATE_ENDED);
+    Serial.println("Episode counter full; session ended");
+    return;
   }
-  updateAlert(now);
+  // No candidate time was credited before qualification. Add it exactly once;
+  // loop() already accounts for subsequent time, including the recovery window.
+  slouchMs += timing.qualifiedMs;
+  if (timing.episode) {
+    episodeCount++;
+    Serial.printf(">>> episode %u counted\n", episodeCount);
+  }
+  setState(postureTiming.slouching() ? STATE_SLOUCHING : STATE_UPRIGHT);
 
   Serial.printf("z=%7.2f diff=%+7.2f lean=%5.1fs alert=%-3s | %-9s tracked=%lus slouch=%lus episodes=%u seq=%lu %s\n",
-                z, diff, leaning ? (now - leanStart) / 1000.0 : 0.0, alertOn ? "ON" : "off",
+                z, diff, postureTiming.leanDuration(now) / 1000.0, postureTiming.slouching() ? "ON" : "off",
                 STATE_NAMES[state], (unsigned long)(trackedMs / 1000),
                 (unsigned long)(slouchMs / 1000), episodeCount, (unsigned long)sequence,
                 bleConnected ? "BLE" : "-");

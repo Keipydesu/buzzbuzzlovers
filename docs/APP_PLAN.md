@@ -1,5 +1,8 @@
 # App plan (Rails + browser)
 
+
+Current follow-up: [decision 017](decisions/017-ten-second-slouch-grace.md) replaces the one-minute rule with ten-second qualification/full-candidate credit and three-second reset. [Decision 018](decisions/018-mvp-first-connection-registration.md) replaces mandatory manual provisioning with trusted first-use registration for MVP. Existing ownership remains protected; stronger enrollment is still required for an untrusted public rollout. Historical proposals below yield to these decisions.
+
 Current integration reference (2026-09-26): [hardware integration plan](hardware-integration-plan.md), [BLE source contract](ble-protocol.md), and [current API](app-api.md). Firmware now exists under `Hardware/`; accounts, ownership, canonical sessions, and atomic accepted history are implemented in Rails. The immediate target is the local demo; the browser adapter is implemented with automated fixture coverage; physical device validation remains pending. Historical proposals below are superseded where they describe absent hardware/accounts/history or public hosting as the immediate milestone.
 
 **Status: architecture proposal; Rails persistence/API scaffold under review, hosted integration not implemented.** Scope is the app side only: the browser BLE adapter and the Rails web app. Wire-level BLE fields, UUIDs, and encoding are defined in [ble-protocol.md](ble-protocol.md) and are not repeated here except where the app-side contract depends on them. See [ROADMAP.md](ROADMAP.md) for how this fits the overall sequencing (this document is Phase 3 + Phase 4 detail).
@@ -67,7 +70,7 @@ posture_sessions
 
 ### Device registration
 
-The scaffold uses one server-configured demo profile. The hosted target replaces it with an authenticated account and server-derived ownership; every read, summary, and mutation must be scoped accordingly. Device identity remains an opaque identifier, not a credential. Online registration must verify a pre-provisioned binding or an agreed possession-proof flow; a plain POST of a BLE ID cannot assign ownership. See [data-storage.md](data-storage.md).
+The scaffold uses one server-configured demo profile. The hosted target replaces it with an authenticated account and server-derived ownership; every read, summary, and mutation must be scoped accordingly. Device identity remains an opaque identifier, not a credential. The trusted MVP uses first authenticated HTTP claim for unused IDs under decision 018, without possession proof. Existing owners and legacy unowned history are protected. Before untrusted public rollout, replace first-claim enrollment with a verified binding or possession-proof flow. See [data-storage.md](data-storage.md).
 
 Explicitly do **not** derive an "upright time" field from `tracked_seconds - slouch_seconds`. Label it in code, API responses, and UI copy as *device-classified non-slouch time* — the device isn't asserting clinically correct posture, only "not currently in a detected slouch episode."
 

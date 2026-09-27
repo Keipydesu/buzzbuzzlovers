@@ -26,7 +26,7 @@
       </div>
       <p data-device-target="empty" <%= "hidden" unless @summary[:session_count].zero? %>>No saved activity today.</p>
       <p data-device-target="incomplete"><% if @summary[:incomplete_session_count].positive? %><%= @summary[:incomplete_session_count] %> unfinished sessions included.<% end %></p>
-      <p class="frequency-rule">Episode counts come from your wearable. Episodes count after more than one minute; slouch time also includes shorter leans.</p>
+      <p class="frequency-rule">A slouch lasting 10 seconds counts as one episode and includes those first 10 seconds. Shorter leans do not count. Stay upright for 3 seconds to reset.</p>
     </section>
     <p data-device-target="summaryStatus" class="chart-caption" role="status"></p>
     <section class="panel wearable-panel" aria-labelledby="wearable-heading">
@@ -43,6 +43,7 @@
       <p data-device-target="details"></p>
       <p data-device-target="saving" role="status">No pending saves.</p>
       <p class="chart-caption">Connect or disconnect the Bluetooth link here. Use BOOT on the wearable to calibrate. Disconnecting does not end tracking.</p>
+      <p class="chart-caption">A new wearable registers to your account automatically when its first session is saved. Use the same account when reconnecting.</p>
       <p class="chart-caption">Live readings here are separate from saved totals. Keep this page open until readings are saved; reloading loses pending uploads.</p>
     </section>
     <section class="panel history-panel">
