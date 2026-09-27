@@ -115,8 +115,12 @@ most 10000 ms. Reset/calibration/error clears the warning. Browser reads and
 notifications share ordering checks; duplicate/stale revisions never renew freshness.
 The browser interpolates elapsed time only for presentation while data is fresh
 (up to three seconds), never for counting episodes or saving durations. The warning
-reaches opacity 1 at 7000 ms, shakes once per confirmed episode, and fades from 1
-to 0 during recovery. Renewed leaning cancels the fade without a second shake.
+stays hidden through 3000 ms, fades linearly to opacity 1 at 7000 ms, shakes once
+per confirmed episode, and fades from 1 to 0 during recovery. Renewed leaning
+cancels recovery without a second shake. A candidate returning to neutral fades
+from its current opacity over three seconds; neutral heartbeats do not restart it.
+Without timing data, live slouch state alone does not show a warning. See
+[decision 033](decisions/033-delayed-posture-warning.md).
 
 
 ## Optional software calibration

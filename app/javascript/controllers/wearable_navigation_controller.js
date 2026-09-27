@@ -34,10 +34,9 @@ export default class extends Controller {
     const connected = Boolean(this.presenceConnected || (session?.active && session.link === "connected"))
     const fresh = session?.active && session.link === "connected" && !session.accountChanged && session.lastFresh !== null && performance.now() - session.lastFresh <= 3000
     let warning = { opacity: 0 }
-    if (fresh) {
+    if (fresh && !session.calibrationPending) {
       const timing = session.warning.reading
-      if (!timing) warning.opacity = session.lastReading?.state === "slouching" ? 1 : 0
-      else if (timing.session === session.lastReading?.session_id && ["upright", "slouching"].includes(session.lastReading?.state)) {
+      if (timing && timing.session === session.lastReading?.session_id && ["upright", "slouching"].includes(session.lastReading?.state)) {
         warning = session.warning.display(performance.now())
       }
     }

@@ -167,6 +167,9 @@ The runner starts and stops its own Rails server on port **3118**; leave that po
 
 The [device-timed posture warning](docs/decisions/027-device-timed-posture-warning.md)
 requires flashing the updated wearable firmware for its early-warning and recovery fades.
+The [delayed warning correction](docs/decisions/033-delayed-posture-warning.md)
+keeps the first three seconds quiet, fades in through seven seconds, and uses
+device timing rather than the immediate live posture label.
 
 [Software calibration](docs/decisions/028-software-calibration-control.md) also
 requires the updated firmware; BOOT remains available on older wearables.

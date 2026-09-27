@@ -46,7 +46,8 @@ test('dashboard navigation keeps Bluetooth and uploads alive in the same tab', a
   await expect(page.locator('#today .today-summary-value')).toContainText('1.3');
   await expect(page.locator('.saved-week-column').last()).toHaveAttribute('aria-label', /4.0 minutes tracked, 1.3 minutes slouching/);
   await page.evaluate(() => window.__bblFixture.emit({ sequence: 183, tracked_seconds: 241, slouch_seconds: 80 }));
-  await expect(page.locator('.posture-notice')).toBeVisible();
+  // Live slouch state alone cannot supply the device's qualification timer.
+  await expect(page.locator('.posture-notice')).toBeHidden();
   await page.evaluate(() => window.__bblFixture.emit({ sequence: 184, state: 'upright', tracked_seconds: 242, slouch_seconds: 80 }));
   await expect(page.locator('.posture-notice')).toBeHidden();
   await expect(page.locator('.compact-header')).toHaveClass(/wearable-connected/);
@@ -77,24 +78,51 @@ test('top warning follows device candidate and recovery timing', async ({ page }
   await page.goto('/wearable?ble_fixture=1');
   await page.getByRole('button', { name: 'Connect wearable', exact: true }).click();
   await page.evaluate(() => {
-    window.__bblFixture.emit({ state: 'upright', slouch_seconds: 0, episode_count: 0 });
-    window.__bblFixture.emitWarning({ phase: 1, elapsed: 3500 });
+    window.__bblFixture.emit({ state: 'slouching', slouch_seconds: 0, episode_count: 0 });
+    window.__bblFixture.emitWarning({ phase: 1, elapsed: 1000 });
   });
   const notice = page.locator('.posture-notice');
+  await expect(notice).toBeHidden();
+  await page.evaluate(() => window.__bblFixture.emitWarning({ phase: 1, elapsed: 3500, sequence: 2 }));
   await expect(notice).toBeVisible();
   await expect(notice).toHaveCSS('z-index', '10000');
   expect((await notice.boundingBox()).y).toBeLessThan(30);
   const opacity = () => notice.evaluate(el => Number(getComputedStyle(el).opacity));
-  expect(await opacity()).toBeGreaterThanOrEqual(0.5);
-  expect(await opacity()).toBeLessThan(0.8);
-  await page.evaluate(() => window.__bblFixture.emitWarning({ phase: 1, elapsed: 7000, sequence: 2 }));
+  expect(await opacity()).toBeGreaterThanOrEqual(0.125);
+  expect(await opacity()).toBeLessThan(0.4);
+  await page.evaluate(() => window.__bblFixture.emitWarning({ phase: 1, elapsed: 7000, sequence: 3 }));
   await expect(notice).toHaveCSS('opacity', '1');
   await page.evaluate(() => {
     window.__bblFixture.emit({ sequence: 182 });
-    window.__bblFixture.emitWarning({ phase: 2, elapsed: 10000, sequence: 3, episode: 1 });
+    window.__bblFixture.emitWarning({ phase: 2, elapsed: 10000, sequence: 4, episode: 1 });
   });
   await expect.poll(() => notice.evaluate(el => el.getAnimations().length)).toBe(1);
-  await page.evaluate(() => window.__bblFixture.emitWarning({ phase: 3, elapsed: 1500, sequence: 4, episode: 1 }));
+  await page.evaluate(() => window.__bblFixture.emitWarning({ phase: 3, elapsed: 1500, sequence: 5, episode: 1 }));
   await expect.poll(opacity).toBeLessThan(0.51);
   await expect(notice).toBeHidden({ timeout: 2500 });
+});
+
+test('an interrupted lean fades away and disconnect suppresses the warning', async ({ page }) => {
+  await login(page);
+  await page.goto('/wearable?ble_fixture=1');
+  await page.getByRole('button', { name: 'Connect wearable', exact: true }).click();
+  await page.evaluate(() => {
+    window.__bblFixture.emit({ state: 'slouching', slouch_seconds: 0, episode_count: 0 });
+    window.__bblFixture.emitWarning({ phase: 1, elapsed: 5000 });
+    window.__bblFixture.emit({ sequence: 182, state: 'upright', slouch_seconds: 0, episode_count: 0 });
+    window.__bblFixture.emitWarning({ phase: 0, elapsed: 0, sequence: 2 });
+  });
+  const notice = page.locator('.posture-notice');
+  await expect(notice).toBeVisible();
+  const opacity = () => notice.evaluate(el => Number(getComputedStyle(el).opacity));
+  expect(await opacity()).toBeGreaterThan(0.3);
+  await expect.poll(opacity).toBeLessThan(0.3);
+  await expect(notice).toBeHidden({ timeout: 3500 });
+  await page.evaluate(() => {
+    window.__bblFixture.emit({ sequence: 183, state: 'slouching', slouch_seconds: 0, episode_count: 0 });
+    window.__bblFixture.emitWarning({ phase: 1, elapsed: 7000, sequence: 3 });
+  });
+  await expect(notice).toBeVisible();
+  await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
+  await expect(notice).toBeHidden();
 });

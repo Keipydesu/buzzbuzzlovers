@@ -10,7 +10,7 @@ function packet(phase, elapsed, sequence = 1, episode = 0) {
 test('device candidate fades to full at seven seconds; only confirmed qualification shakes once', () => {
   const w = new PostureWarning()
   w.accept(packet(1, 3500), 0)
-  assert.equal(w.display(0).opacity, 0.5)
+  assert.equal(w.display(0).opacity, 0.125)
   w.accept(packet(1, 6000, 2), 2000)
   assert.equal(w.display(3000).opacity, 1)
   assert.equal(w.display(4000).shake, false)
@@ -24,6 +24,36 @@ test('device candidate fades to full at seven seconds; only confirmed qualificat
   assert.equal(w.display(8100).shake, false)
   w.accept(packet(2, 10000, 6, 2), 8200)
   assert.equal(w.display(8200).shake, true)
+})
+test('candidate stays quiet for three seconds then fades between three and seven seconds', () => {
+  const w = new PostureWarning()
+  for (const [elapsed, opacity] of [[0, 0], [2999, 0], [3000, 0], [3500, 0.125], [5000, 0.5], [7000, 1], [10000, 1]]) {
+    w.accept(packet(1, elapsed, elapsed + 1), elapsed)
+    assert.equal(w.display(elapsed).opacity, opacity)
+    assert.equal(w.display(elapsed).shake, false)
+  }
+})
+test('an interrupted candidate fades from its current opacity without restarting on neutral heartbeats', () => {
+  const w = new PostureWarning()
+  w.accept(packet(1, 5000), 0)
+  w.accept(packet(0, 0, 2), 0)
+  assert.equal(w.display(0).opacity, 0.5)
+  w.accept(packet(0, 0, 3), 1000)
+  assert.equal(w.display(1500).opacity, 0.25)
+  assert.equal(w.display(3000).opacity, 0)
+  w.accept(packet(1, 1000, 4), 3100)
+  assert.equal(w.display(3100).opacity, 0)
+})
+test('neutral does not revive a stale candidate or carry its fade into a new session', () => {
+  const w = new PostureWarning()
+  w.accept(packet(1, 7000), 0)
+  w.accept(packet(0, 0, 2), 3001)
+  assert.equal(w.display(3001).opacity, 0)
+  w.accept(packet(1, 7000, 3), 4000)
+  const nextSession = packet(0, 0, 1)
+  nextSession.setUint32(2, 8, true)
+  w.accept(nextSession, 4001)
+  assert.equal(w.display(4001).opacity, 0)
 })
 test('stale, out of order and malformed warning data do not revive a warning', () => {
   const w = new PostureWarning()

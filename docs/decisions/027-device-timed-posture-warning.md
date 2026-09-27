@@ -4,6 +4,8 @@ Date: 2026-09-26.
 
 Status: accepted user request; firmware source implemented, not physically flashed or verified.
 
+Warning onset and legacy fallback are superseded by [decision 033](033-delayed-posture-warning.md).
+
 ## Context
 
 The user wants a topmost warning that fades in before qualification, reaches full
