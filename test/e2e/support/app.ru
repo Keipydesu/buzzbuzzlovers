@@ -7,7 +7,9 @@ travel_to Time.utc(2026, 9, 23, 16)
 ActionController::Base.allow_forgery_protection = true
 # This adapter exists only in this test Rack entrypoint. Never contact Meta.
 module E2eCoach
-  def call(question)
+  private
+
+  def request_answer(question, history:, context:)
     raise Muse::Coach::Unavailable, "Muse is not connected yet." unless self.class.configured?
     if question == "Simulate unavailable service"
       raise Muse::Coach::Unavailable, "Muse could not respond right now. Please try again later."

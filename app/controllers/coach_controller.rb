@@ -17,9 +17,7 @@ class CoachController < ApplicationController
     end
 
     Muse::Coach.new.call(@question.strip, user: current_user)
-    @question = nil
-    @history = Muse::Conversation.for(current_user.id)
-    render :show
+    redirect_to coach_path, status: :see_other
   rescue Muse::Coach::Unavailable => error
     @error = error.message
     @history = Muse::Conversation.for(current_user.id)

@@ -26,6 +26,12 @@ test('coach explains availability and sharing, validates, renders escaped respon
   await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
   await expect(page.locator('.muse-turn-assistant').last()).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.locator('.muse-turn-assistant')).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator('.muse-turn-assistant')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Start a new conversation' }).click();
+  await expect(page.locator('.muse-turn')).toHaveCount(0);
+  await expect(page.getByLabel('What would you like to work on?')).toBeVisible();
   await noOverflow(page);
 });
 
