@@ -22,16 +22,25 @@ versions, the `public.posture_snapshots` hypertable, compressed chunk counts, an
 its background policies. It does not select personal tracking records.
 
 Certificate and hostname verification are required even if the URL says
-`sslmode=require`. The default uses libpq's system CA store (libpq 16+). If your
-service uses a private CA, download its certificate from your authenticated Tiger
-console and add its absolute path to `.env`:
+`sslmode=require`. With libpq 16+ (this machine has 18), use the system trust store:
 
 ```dotenv
-TIGER_SSLROOTCERT=/absolute/path/to/tiger-ca.pem
+TIGER_SSLROOTCERT=system
 ```
 
-Do not trust a certificate merely because the failing database endpoint supplied
-it. A failed verification must be resolved with the provider's trusted CA.
+No separate certificate file is normally needed. Tiger's [official SSL guide](https://www.tigerdata.com/docs/use-timescale/latest/security/strict-ssl/)
+says services start with a self-signed certificate; paid services usually receive
+a signed certificate within 30 minutes. Free services do not supply signed
+certificates. For a new paid service, wait for certificate issuance and retry.
+For a free service, strict verification may remain unavailable: resolve trusted
+certificate provisioning or explicitly decide on a different TLS policy before
+using this tool. It does not silently fall back to encryption without server
+identity verification.
+
+An existing, independently trusted CA bundle can instead be supplied as an
+absolute file path. Do not put a password, API key, or pasted certificate body
+in this variable, and do not trust a certificate solely because the failing
+endpoint returned it.
 
 ## Verify compression without changing application records
 
@@ -98,7 +107,7 @@ the installed OpenSSL CA bundle failed; a credential-free TLS handshake reported
 `self-signed certificate in certificate chain`. No database credentials were sent
 after validation failed, and no hosted data, schema, or policy was changed.
 Hosted status, synthetic compression, and policy activation remain unverified
-until the trusted CA is supplied. After the operator updated `.env`, the configured
+until server certificate trust is resolved. After the operator updated `.env`, the configured
 CA value did not resolve to an existing local file; a dedicated preflight error now
 explains this without echoing the value. Local checks are not proof of hosted compression.
 
@@ -112,3 +121,8 @@ References: [decision 032](decisions/032-tiger-snapshot-columnstore.md),
 [columnstore setup](https://www.tigerdata.com/docs/build/columnar-storage/setup-hypercore),
 [policy API](https://www.tigerdata.com/docs/reference/timescaledb/hypercore/add_columnstore_policy),
 [ALTER TABLE](https://www.tigerdata.com/docs/reference/timescaledb/hypercore/alter_table).
+
+Follow-up: the official SSL guide explains that free services lack signed
+certificates and new paid services can need 30 minutes. Retrying explicitly with
+`TIGER_SSLROOTCERT=system` still failed. The service plan/age is not yet confirmed;
+the operator does not necessarily have or need a separate CA file.

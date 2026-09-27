@@ -32,7 +32,10 @@ Recent chunks stay in rowstore; small datasets may see no immediate savings.
 
 Connections require certificate and hostname verification with a trusted CA.
 The first connection attempt failed with a self-signed certificate in the chain;
-hosted verification and activation remain pending a trusted provider CA.
+hosted verification and activation remain pending resolution of certificate trust.
+Follow-up from Tiger’s official SSL guide: modern clients normally need no CA file;
+new paid services can take 30 minutes to receive a signed certificate, while free
+services do not supply one. The service plan/age is not yet confirmed.
 Direct model/schema/migration review found no Active Record schema changes needed.
 No dependency installation or generated model-map task is involved.
 
