@@ -24,6 +24,16 @@ struct Tracker {
 };
 
 int main() {
+  PostureTiming warning;
+  assert(warning.warningPhase() == 0);
+  warning.update(0, true);
+  assert(warning.warningPhase() == 1 && warning.warningElapsed(7000) == 7000);
+  warning.update(10000, true);
+  assert(warning.warningPhase() == 2 && warning.warningElapsed(10000) == 10000);
+  warning.update(11000, false);
+  assert(warning.warningPhase() == 3 && warning.warningElapsed(12500) == 1500);
+  warning.update(14000, false);
+  assert(warning.warningPhase() == 0 && warning.warningElapsed(14000) == 0);
   Tracker t;
   t.sample(0, true);
   t.sample(9999, true);

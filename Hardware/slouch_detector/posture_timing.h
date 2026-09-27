@@ -51,6 +51,13 @@ class PostureTiming {
     return result;
   }
 
+  // Display phases: neutral, candidate, qualified, recovering.
+  uint8_t warningPhase() const { return recovering_ ? 3 : slouching_ ? 2 : leaning_ ? 1 : 0; }
+  uint16_t warningElapsed(uint32_t now) const {
+    uint32_t elapsed = recovering_ ? now - uprightStart_ : leaning_ ? now - leanStart_ : 0;
+    return warningPhase() == 2 ? SLOUCH_MS : elapsed > SLOUCH_MS ? SLOUCH_MS : elapsed;
+  }
+
   bool slouching() const { return slouching_; }
   uint32_t leanDuration(uint32_t now) const { return leaning_ ? now - leanStart_ : 0; }
 

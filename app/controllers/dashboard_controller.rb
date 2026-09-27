@@ -17,8 +17,19 @@ class DashboardController < ApplicationController
   end
 
   def wearable
+  end
+
+  def details
     @timezone = Rails.application.config.x.demo_timezone
-    today = Time.current.in_time_zone(@timezone).to_date
-    @summary = DailySummaryQuery.call(date: today, sessions: current_user.posture_sessions)
+    @period = %w[day week month].include?(params[:period]) ? params[:period] : "day"
+    finish = Time.current.in_time_zone(@timezone).to_date
+    length = { "day" => 1, "week" => 7, "month" => 30 }.fetch(@period)
+    @days = (length - 1).downto(0).map do |offset|
+      date = finish - offset
+      [ date, DailySummaryQuery.call(date: date, sessions: current_user.posture_sessions) ]
+    end
+    @summary = %i[session_count episode_count tracked_seconds slouch_seconds non_slouch_seconds].index_with do |key|
+      @days.sum { |_date, summary| summary.fetch(key) }
+    end
   end
 end

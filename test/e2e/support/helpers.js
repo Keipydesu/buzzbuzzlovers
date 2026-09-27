@@ -50,6 +50,7 @@ async function logout(page) {
 }
 async function createGroup(page, name = 'Desk friends') {
   await page.goto('/groups');
+  await page.getByRole('link', { name: 'Create a group instead →' }).click();
   await page.getByLabel('Group name', { exact: true }).fill(name);
   await page.getByRole('button', { name: 'Create group', exact: true }).click();
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();

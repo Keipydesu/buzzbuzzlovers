@@ -1,26 +1,29 @@
-<div class="tracker" data-controller="theme" data-theme="dark">
+<% content_for :title, "Groups · pose." %>
+<div class="tracker" data-controller="theme wearable-navigation" data-theme="dark">
   <main class="dashboard groups-page">
     <%= render "groups/header" %>
-    <h1>Your groups</h1>
     <% if flash[:alert] %><p role="alert"><%= flash[:alert] %></p><% end %>
-    <section class="panel">
-      <% if @groups.empty? %><p>Create a group or join your friends with a code.</p><% end %>
-      <ul class="ranking-list"><% @groups.each do |group| %><li class="ranking-row"><%= link_to group.name, group_path(group) %></li><% end %></ul>
-    </section>
-    <section class="panel create-group" id="create-group-title">
-      <h2>Create a group</h2>
-      <% if @group.errors.any? %><p role="alert"><%= @group.errors.full_messages.to_sentence %></p><% end %>
-      <%= form_with model: @group do |form| %>
-        <%= form.label :name, "Group name" %>
-        <div class="group-form-row"><%= form.text_field :name, required: true, maxlength: 40 %><%= form.submit "Create group", class: "group-create-button" %></div>
-      <% end %>
-    </section>
-    <section class="panel create-group">
-      <h2>Join your friends</h2>
-      <p>Joining shares your username, weekly slouch share, recorded time, and improvement with group members.</p>
-      <%= form_with url: join_group_path do |form| %>
-        <%= form.label :code, "Invite code" %>
-        <div class="group-form-row"><%= form.text_field :code, required: true, maxlength: 12, autocomplete: "off" %><%= form.submit "Join group", class: "group-create-button" %></div>
+    <% if @groups.any? %>
+      <section class="panel">
+        <ul class="ranking-list"><% @groups.each do |group| %><li class="ranking-row"><%= link_to group.name, group_path(group) %></li><% end %></ul>
+      </section>
+    <% end %>
+    <section class="panel create-group group-menu">
+      <% if params[:mode] == "create" || @group.errors.any? %>
+        <h1>Create a group</h1>
+        <% if @group.errors.any? %><p role="alert"><%= @group.errors.full_messages.to_sentence %></p><% end %>
+        <%= form_with model: @group do |form| %>
+          <%= form.label :name, "Group name" %>
+          <div class="group-form-row"><%= form.text_field :name, required: true, maxlength: 40 %><%= form.submit "Create group", class: "group-create-button" %></div>
+        <% end %>
+        <%= link_to "Join friends instead →", groups_path, class: "group-menu-switch" %>
+      <% else %>
+        <h1>Join friends</h1>
+        <%= form_with url: join_group_path do |form| %>
+          <%= form.label :code, "Invite code", class: "sr-only" %>
+          <div class="group-form-row"><%= form.text_field :code, required: true, maxlength: 12, autocomplete: "off" %><%= form.submit "Join group", class: "group-create-button" %></div>
+        <% end %>
+        <%= link_to "Create a group instead →", groups_path(mode: "create"), class: "group-menu-switch" %>
       <% end %>
     </section>
   </main>

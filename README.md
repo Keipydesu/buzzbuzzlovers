@@ -1,10 +1,19 @@
-# bbl
+# pose.
+
+Demo friend group: [invite code and seeded participants](docs/demo-friend-group.md).
+
+Brand: **pose.** (formerly bbl); see [the naming decision](docs/decisions/021-pose-brand.md).
+
+Below Connect and the group card, a compact Today card shows slouching minutes and
+a small tracked-time ring. Tap it for [Details with Day, Week, and Month charts](docs/decisions/023-period-details-and-chart-only-history.md).
+The wearable page uses [guided connection and calibration](docs/decisions/024-guided-wearable-setup.md).
+Bluetooth and pending uploads now [stay connected during in-app navigation](docs/decisions/026-preserve-bluetooth-across-app-navigation.md), including Go to dashboard in the same tab. Refreshing or closing the tab still disconnects.
 
 UI priority and verification: [Mobile-first interface](docs/mobile-first-interface.md). Visitors at `/` now see a public introduction; signed-in users see their saved dashboard. Login and signup share the navy/gold tracker design and light/dark themes.
 
 Account implementation and operator setup: [MVP authentication](docs/authentication-mvp.md).
 
-A HackGT 13 project by team **bbl**: a small wearable that tracks slouching, paired with a mobile-first web dashboard for daily awareness, weekly history, and gamified progress.
+**pose.** is a HackGT 13 project: a small wearable that tracks slouching, paired with a mobile-first web dashboard for daily awareness, weekly history, and gamified progress.
 
 The app now has username/password accounts, saved friend groups, invite links/codes, weekly slouch-share rankings and a separate most-improved highlight. These changes are local and independently reviewed; see [implementation and limits](docs/social-competition-implementation-plan.md). Rankings refresh from saved data, use Monday–Sunday in the configured app timezone, and trust participants. No-data users are unranked.
 
@@ -155,3 +164,9 @@ npm run test:e2e -- --project=desktop-chromium --headed
 ```
 
 The runner starts and stops its own Rails server on port **3118**; leave that port free and run one suite at a time. It prepares the dedicated local **`bbl_playwright_test`** database and clears its synthetic application records before each test. Keep that database reserved for tests. The runner supplies its own isolated environment, so no `.env`, hosted database URL, Meta key, or manually started Rails server is needed.
+
+The [device-timed posture warning](docs/decisions/027-device-timed-posture-warning.md)
+requires flashing the updated wearable firmware for its early-warning and recovery fades.
+
+[Software calibration](docs/decisions/028-software-calibration-control.md) also
+requires the updated firmware; BOOT remains available on older wearables.

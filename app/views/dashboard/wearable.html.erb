@@ -1,35 +1,47 @@
-<% content_for :title, "bbl" %>
+<% content_for :title, "pose." %>
 <% content_for :head do %><meta name="turbo-cache-control" content="no-cache"><% end %>
 <% fixture_mode = Rails.env.test? && ENV["BBL_E2E"] == "1" && params[:ble_fixture] == "1" %>
-<div class="tracker" data-controller="theme device" data-theme="dark" data-device-account-value="<%= current_user.id %>"
+<div class="tracker" data-controller="theme device wearable-navigation" data-theme="dark" data-device-account-value="<%= current_user.id %>"
   <% if fixture_mode %>data-device-fixture-value="true" data-device-fixture-device-value="<%= current_user.devices.order(:id).first&.id %>" data-device-observed-at-value="<%= Time.current.iso8601 %>"<% end %>>
   <a class="skip-link" href="#wearable-heading">Skip to wearable</a>
   <main class="dashboard wearable-page">
     <%= render "groups/header" %>
-    <section class="panel wearable-panel" aria-labelledby="wearable-heading">
-      <h1 id="wearable-heading">Your wearable</h1>
+    <section class="panel wearable-panel grain-panel" data-device-target="setupPanel" aria-labelledby="wearable-heading">
+      <h1 id="wearable-heading">Wearable</h1>
       <% if fixture_mode %><p class="fixture-banner">SIMULATED WEARABLE · isolated test data</p><% end %>
-      <p data-device-target="connection" role="status">Checking Bluetooth support…</p>
+      <div class="sr-only" data-device-target="progress" role="progressbar" aria-label="Wearable setup" aria-valuemin="0" aria-valuemax="2" aria-valuenow="0" aria-valuetext="Connect your wearable"></div>
+      <ol class="pairing-stages" aria-label="Setup steps">
+        <li data-device-target="stage" aria-current="step"><span>1</span>Connect</li>
+        <li data-device-target="stage"><span>2</span>Calibrate</li>
+        <li data-device-target="stage"><span>✓</span>Ready</li>
+      </ol>
+      <p class="connection-notice" data-device-target="connection" role="status">Checking Bluetooth support…</p>
+      <div class="wearable-step" data-device-target="connectStep">
+        <h2 class="sr-only">Connect your wearable</h2>
+        <p>Wearable on and nearby?</p>
+        <div class="wearable-actions"><button type="button" class="competition-primary" data-device-target="connectButton" data-action="device#connectWearable">Connect wearable</button></div>
+      </div>
+      <div class="wearable-step" data-device-target="calibrateStep" hidden>
+        <h2 class="sr-only">Calibrate your posture</h2>
+        <p data-device-target="calibrationHint">Sit upright. Press <strong>BOOT</strong>. Hold still.</p>
+      </div>
+      <h2 class="pairing-ready" data-device-target="readyStep" hidden>You're ready.</h2>
+      <div data-device-target="trackingStep" hidden>
+        <p data-device-target="posture" class="wearable-posture" role="status">No live reading</p>
+        <p class="chart-caption">Keep the app open while tracking.</p>
+        <%= link_to "Go to dashboard →", root_path, class: "competition-primary wearable-dashboard-button", data: { device_target: "dashboardButton" }, hidden: true %>
+      </div>
+      <p data-device-target="saving" role="status" hidden>No pending saves.</p>
       <div class="wearable-actions">
-        <button type="button" class="competition-primary" data-device-target="connectButton" data-action="device#connectWearable">Connect wearable</button>
-        <button type="button" class="group-link" data-device-target="disconnectButton" data-action="device#disconnectWearable" disabled>Disconnect</button>
+        <button type="button" class="competition-primary" data-device-target="calibrateButton" data-action="device#calibrate" hidden disabled>Calibrate</button>
+        <button type="button" class="group-link" data-device-target="disconnectButton" data-action="device#disconnectWearable" disabled hidden>Disconnect</button>
         <button type="button" class="group-link" data-device-target="retryButton" data-action="device#retrySaving" hidden>Retry saving</button>
       </div>
-      <p data-device-target="identity" class="wearable-identity">No wearable selected</p>
-      <p data-device-target="posture" class="wearable-posture">No live reading</p>
-      <p data-device-target="details"></p>
-      <p data-device-target="saving" role="status">No pending saves.</p>
-      <p class="chart-caption">Keep this page open while tracking. Leaving disconnects Bluetooth; wait until readings are saved.</p>
-      <%= link_to "View dashboard ↗", root_path, target: "_blank", rel: "noopener", class: "group-link" %>
       <details class="wearable-help">
-        <summary>Setup &amp; tracking help</summary>
-        <p>Press BOOT while sitting upright to calibrate. Disconnecting Bluetooth does not end the device session.</p>
-        <p>A new wearable registers when its first session is saved. Reconnect using the same account.</p>
-        <p>Live readings and saved totals are separate. Reloading or leaving can lose pending uploads.</p>
-        <p class="frequency-rule">A slouch lasting 10 seconds counts as one episode and includes those first 10 seconds. Shorter leans do not count. Stay upright for 3 seconds to reset.</p>
+        <summary>Device details</summary>
+        <p data-device-target="identity" class="wearable-identity">No wearable selected</p>
+        <p data-device-target="details"></p>
       </details>
     </section>
-    <%= render "today", diagnostics: true %>
-    <p data-device-target="summaryStatus" class="chart-caption" role="status"></p>
   </main>
 </div>

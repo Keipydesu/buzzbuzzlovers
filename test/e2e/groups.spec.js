@@ -2,8 +2,9 @@ const { test, expect, login, logout, signup, createGroup, noOverflow } = require
 
 test('create group, validate name, join by normalized code, repeat, leave and rejoin', async ({ page }) => {
   await login(page);
-  await page.getByRole('link', { name: 'Your groups' }).click();
-  await expect(page.getByText('Create a group or join your friends with a code.')).toBeVisible();
+  await page.getByRole('link', { name: "THIS WEEK'S RACE Join group →" }).click();
+  await expect(page.getByRole('heading', { name: 'Join friends', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Create a group instead →' }).click();
   await page.getByLabel('Group name').fill('   ');
   await page.getByRole('button', { name: 'Create group', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText("can't be blank");
@@ -72,5 +73,5 @@ test('invalid invitations neither reveal a group nor join one', async ({ page })
   await page.getByRole('button', { name: 'Join group', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveText('Invite code was not found. Check it and try again.');
   await page.goto('/groups');
-  await expect(page.getByText('Create a group or join your friends with a code.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Join friends', exact: true })).toBeVisible();
 });

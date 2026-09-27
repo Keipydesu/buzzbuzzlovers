@@ -14,7 +14,7 @@ The detector initializes a BNO055 at I2C address `0x28`, SDA `21`, SCL `22`, in 
 | Device identity | `5a02ab16-022f-43a7-8b81-2d136526c605` | Read, exactly 16 bytes |
 | Session snapshot | `3ea72a7d-ef99-4f43-95d7-d6860687824e` | Read, Notify, exactly 20 bytes |
 
-There is no write/command characteristic. Identity is generated with `esp_fill_random` and stored with the session counter in Preferences namespace `bbl` (`id`, `sess`). The source regenerates identity when the session key is missing or the stored identity length is wrong. Convert bytes in wire order to 32 lowercase hex characters; do not use the Bluetooth name, browser Bluetooth ID, or UUID-endian formatting as the Rails identity. Identity is public, not an ownership credential. Preferences write success is not checked by this sketch, so power-loss durability is an assumption to test, not a guarantee.
+An optional calibration command is described below. Identity is generated with `esp_fill_random` and stored with the session counter in Preferences namespace `bbl` (`id`, `sess`). The source regenerates identity when the session key is missing or the stored identity length is wrong. Convert bytes in wire order to 32 lowercase hex characters; do not use the Bluetooth name, browser Bluetooth ID, or UUID-endian formatting as the Rails identity. Identity is public, not an ownership credential. Preferences write success is not checked by this sketch, so power-loss durability is an assumption to test, not a guarantee.
 
 ## Snapshot encoding
 
@@ -75,7 +75,7 @@ Key cumulative state by `(device_id, session_id)`. Reject invalid ranges, counte
 
 Same-session reconnect can recover current cumulative totals retained in RAM despite missed notifications. It cannot recover overwritten sessions, identify individual episode timestamps, split activity across midnight, or reconstruct coverage from server receipt times. Saved partial sessions remain incomplete unless the device actually reports ended.
 
-Use the current first-observed-date grouping: the browser captures an observation timestamp for each positive session; Rails freezes it and the configured timezone at first insert. Label personal totals “Sessions by first-seen date.” A late first observation is not the device's start time. No half-hour episode chart or accurate per-day activity split can be produced from this payload. Durable browser outbox, device history, time synchronization, and browser commands remain separate extensions.
+Use the current first-observed-date grouping: the browser captures an observation timestamp for each positive session; Rails freezes it and the configured timezone at first insert. Label personal totals “Sessions by first-seen date.” A late first observation is not the device's start time. No half-hour episode chart or accurate per-day activity split can be produced from this payload. Durable browser outbox, device history, time synchronization, remain separate extensions.
 
 ## Review fixtures and verification
 
@@ -89,3 +89,49 @@ The following are synthetic fixtures, not captured hardware readings:
 | Unsigned range check | `01 02 ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 80 ff ff`: session/revision/tracked = 4294967295, slouch = 2147483648, episodes = 65535; parser boundary only, not a source-reachable longevity claim |
 
 Python `struct` with `<BBIIIIH` independently verified these 20-byte layouts during documentation review. This is not firmware compilation or a BLE capture. Future tests must cover wrong lengths/version/state, equal conflicts, duplicates/stale data, decreasing counters, unsigned bounds, session-zero error, recalibration, reboot, terminal repeats/reload races, disconnect versus HTTP failure, and real below/exactly/above-10-second qualification and 3-second recovery trials. Record board, firmware/core/library versions, laptop/OS/browser, observed packets, and limitations during physical acceptance.
+
+## Optional live warning timing
+
+[Decision 027](decisions/027-device-timed-posture-warning.md) adds read/notify
+characteristic `9c052810-52d4-4fc9-9c03-f37e93874bc1` to the existing service.
+This is a source implementation requiring a firmware flash; physical BLE timing
+and the ESP32 build have not been verified. The original 20-byte snapshot and API
+stay unchanged. Older firmware without this characteristic remains supported.
+
+The separate 14-byte little-endian payload contains:
+
+| Offset | Type | Meaning |
+| --- | --- | --- |
+| 0 | uint8 | Warning format version 1 |
+| 1 | uint8 | 0 neutral, 1 candidate lean, 2 qualified, 3 recovering |
+| 2 | uint32 | Current session ID |
+| 6 | uint32 | Same publication revision as the session snapshot |
+| 10 | uint16 | Candidate/recovery elapsed ms; qualified is 10000, neutral is 0 |
+| 12 | uint16 | Current episode count |
+
+Firmware publishes phase transitions immediately on the next sampled loop, plus
+its usual heartbeat. Recovery elapsed is at most 3000 ms; candidate elapsed is at
+most 10000 ms. Reset/calibration/error clears the warning. Browser reads and
+notifications share ordering checks; duplicate/stale revisions never renew freshness.
+The browser interpolates elapsed time only for presentation while data is fresh
+(up to three seconds), never for counting episodes or saving durations. The warning
+reaches opacity 1 at 7000 ms, shakes once per confirmed episode, and fades from 1
+to 0 during recovery. Renewed leaning cancels the fade without a second shake.
+
+
+## Optional software calibration
+
+[Decision 028](decisions/028-software-calibration-control.md) adds characteristic
+`883c8f42-529b-47ef-ae21-278020ae5c55` with Write (with response). The exact two-byte
+payload `01 01` means format version 1, calibrate. Other lengths, versions and
+commands are ignored. The callback atomically queues a request for the sensor loop;
+requests during calibration, an ended session or unavailable sensor are ignored.
+The same one-second settling and three-second baseline capture as BOOT applies.
+
+The browser discovers this characteristic optionally, serializes the write with
+GATT reads, and guards the active connection/account. A GATT write acknowledgement
+is not calibration completion. Only fresh `calibrating` then `upright`/`slouching`
+snapshots drive the setup flow. If no calibration-start confirmation arrives within
+five seconds, the app allows retry and offers BOOT. Old firmware without the
+characteristic remains connectable. Software calibration requires flashing the
+updated source; ESP32 compilation and physical command handling are unverified.

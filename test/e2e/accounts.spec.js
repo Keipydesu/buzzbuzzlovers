@@ -31,7 +31,7 @@ test('signup through landing, empty dashboard, logout and normalized login', asy
   await signup(page, 'New_Friend');
   await expect(page).toHaveURL('/');
   await expect(page.getByText('No saved activity today.')).toBeVisible();
-  await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
+  await expect(page.locator('.saved-week-column')).toHaveCount(7);
   await expect(page.locator('.saved-week-missing')).toHaveCount(7);
   await logout(page);
   await expect(page).toHaveURL('/login');
@@ -107,7 +107,7 @@ test('hovering navigation does not start background requests that can restore a 
   page.on('request', request => {
     if (request.headers()['x-sec-purpose'] === 'prefetch') prefetches.push(request.url());
   });
-  await page.getByRole('link', { name: 'bbl.', exact: true }).hover();
+  await page.getByRole('link', { name: 'pose.', exact: true }).hover();
   // Advance the browser's actual prefetch timer; no wall-clock sleep or retry.
   await page.clock.runFor(1000);
   expect(prefetches).toEqual([]);

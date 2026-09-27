@@ -1,5 +1,41 @@
 .tracker .visual-dashboard, .tracker .wearable-page { padding-bottom: 32px; }
 .tracker .visual-dashboard h2 { font-size: 18px; }
+.tracker .today-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 18px 0; }
+.tracker .today-summary:hover { border-color: var(--gold); }
+.tracker .today-summary-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 8px; font-size: 32px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tracker .today-summary-value span, .tracker .today-summary-empty { font-size: 12px; color: var(--muted); }
+.tracker .today-summary-empty { margin-top: 8px; }
+.tracker .today-summary-visual { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.tracker .today-mini-chart { width: 64px; height: 64px; }
+.tracker .today-mini-track { stroke: var(--border); }
+.tracker .today-mini-non-slouch { stroke: var(--bar); }
+.tracker .today-mini-slouch { stroke: var(--gold); }
+.tracker .today-summary-arrow { color: var(--accent-text); }
+.tracker .details-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.tracker .details-heading h1 { font-size: 26px; }
+.tracker .period-selector { display: flex; border: 1px solid var(--border); }
+.tracker .period-selector a { display: grid; place-items: center; min-height: 44px; padding: 0 18px; color: var(--muted); }
+.tracker .period-selector a[aria-current="page"] { background: var(--gold); color: var(--navy); font-weight: 600; }
+.tracker .details-range { color: var(--muted); font-size: 12px; margin: 12px 0 20px; }
+.tracker .details-totals { margin-bottom: 20px; }
+.tracker .details-totals .session-metrics { border: 0; padding: 0; }
+.tracker .details-totals .session-metrics p { font-size: clamp(22px, 5vw, 34px); overflow-wrap: anywhere; }
+.tracker .daily-breakdown-chart { width: 220px; max-width: 100%; margin: 24px auto; position: relative; }
+.tracker .daily-breakdown { padding: 24px 0; }
+.tracker .weekly-card-link { position: relative; }
+.tracker .weekly-details-link { position: absolute; inset: 0; overflow: hidden; text-indent: -10000px; }
+.tracker .weekly-card-link:hover > .panel { border-color: var(--gold); }
+.tracker .daily-breakdown-chart svg { display: block; width: 100%; }
+.tracker .daily-breakdown-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.tracker .daily-breakdown-center strong { font-size: 30px; }
+.tracker .daily-breakdown-center span { color: var(--muted); font-size: 12px; }
+.tracker .breakdown-legend { justify-content: center; flex-wrap: wrap; gap: 14px 24px; }
+.tracker .details-empty { padding: 32px 0; color: var(--muted); }
+.tracker .saved-week-plot.month-plot { gap: 2px; }
+.tracker .month-plot .saved-week-bar { max-width: 100%; border-radius: 0; }
+.tracker .month-plot .saved-week-missing { font-size: 9px; }
+.tracker .month-plot .saved-week-zero { min-width: 0; font-size: 9px; }
+.tracker .month-plot .saved-week-column:last-child .saved-week-day { right: 0; }
 .tracker .weekly-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .tracker .weekly-legend { flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; }
 .tracker .saved-week-chart { display: flex; gap: 10px; margin-top: 22px; padding-bottom: 44px; }
@@ -14,6 +50,9 @@
 .tracker .saved-week-day small { display: block; font-size: 10px; }
 .tracker .today-column .saved-week-day { color: var(--accent-text); font-weight: 600; }
 .tracker .saved-week-average { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--text); z-index: 1; pointer-events: none; }
+.tracker[data-theme="dark"] .saved-week-average, .tracker[data-theme="dark"] .average-key { animation: average-line-pulse 2.8s ease-in-out infinite; }
+@keyframes average-line-pulse { 0%, 100% { border-top-color: #fff; } 50% { border-top-color: var(--gold); } }
+@media (prefers-reduced-motion: reduce) { .tracker[data-theme="dark"] .saved-week-average, .tracker[data-theme="dark"] .average-key { animation: none; border-top-color: var(--gold); } }
 .tracker .weekly-footnote { display: flex; gap: 8px 16px; flex-wrap: wrap; justify-content: space-between; color: var(--muted); font-size: 11px; margin: 10px 0 16px; }
 .tracker .average-key { display: inline-block; width: 16px; border-top: 2px dashed var(--text); vertical-align: middle; margin-right: 4px; }
 .tracker .weekly-data { border-top: 1px solid var(--border); padding-top: 12px; font-size: 12px; }
@@ -28,7 +67,10 @@
   .tracker .saved-week-axis { width: 25px; }
 }
 
-.tracker .compact-header { min-height: 72px; gap: 10px; }
+.tracker .compact-header { position: relative; min-height: 72px; gap: 10px; }
+.tracker .compact-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--gold); box-shadow: 0 0 8px #b3905180, 0 0 18px #b3905140; opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
+.tracker .compact-header.wearable-connected::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tracker .compact-header::after { transition: none; } }
 .tracker .compact-header-actions { display: flex; align-items: center; gap: 8px; }
 .tracker .compact-header .theme-button { min-width: 44px; height: 44px; padding: 0; font-size: 20px !important; border: 0; background: transparent; }
 .tracker .header-wearable { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; font-size: 12px; color: var(--accent-text); }
@@ -38,4 +80,18 @@
 .tracker .account-menu details[open] summary, .tracker .account-menu summary:hover { background: var(--surface-raised); }
 .tracker .account-menu-panel { position: absolute; z-index: 4; right: 0; top: 50px; width: 210px; max-width: calc(100vw - 36px); padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 8px 24px #0003; }
 .tracker .account-menu-panel > span { display: block; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; padding-bottom: 8px; }
+.tracker .account-wearable-link { display: flex; align-items: center; min-height: 44px; color: var(--accent-text); }
+.tracker .wearable-session-notice { display: flex; align-items: center; min-height: 44px; color: var(--accent-text); font-size: 12px; }
+.tracker .wearable-session-notice[hidden] { display: none; }
+.tracker .posture-notice { position: fixed; z-index: 10000; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); padding: 12px 16px; background: var(--surface); color: var(--text); border: 1px solid var(--gold); box-shadow: 0 4px 20px #0003; font-size: 13px; pointer-events: none; }
+.tracker .posture-notice > span { color: var(--accent-text); font-size: 18px; margin-right: 8px; }
+.tracker .posture-notice[hidden] { display: none; }
+.tracker .connect-wearable-card { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; }
+.tracker .grain-panel { --grain-accent: #d9ba83; position: relative; isolation: isolate; overflow: hidden; border-color: var(--gold); }
+.tracker[data-theme="light"] .grain-panel { --grain-accent: #254a70; border-color: #8a9bad; }
+.tracker .grain-panel::before, .tracker .grain-panel::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at top right, var(--grain-accent), transparent 75%); }
+.tracker .grain-panel::before { opacity: .1; }
+.tracker .grain-panel::after { opacity: .6; mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 3 -1.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E"); mask-size: 180px 180px; mask-repeat: repeat; }
+.tracker .connect-wearable-card:hover { border-color: var(--gold); }
+.tracker .connect-wearable-card[hidden], .tracker .header-wearable[hidden] { display: none; }
 .tracker .account-menu-panel button { min-height: 44px; width: 100%; background: var(--surface-raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; }

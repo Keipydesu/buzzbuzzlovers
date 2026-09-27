@@ -16,6 +16,9 @@ Place the weekly competition card above Today and the weekly chart. Keep Today f
 
 ## Consequences
 
+Today presentation is subsequently superseded by
+[decision 022](022-compact-today-detail-page.md).
+
 This changes presentation, not aggregation: the entire canonical session still belongs to its frozen first-observed date, and overnight sessions are not split. No missing time is invented. Competition scoring and account ownership remain unchanged. Theme and account controls retain accessible names and 44px targets.
 
 Direct model/schema/migration review remains applicable: no data-model or dependency changes. The revised shared header requires account/navigation and narrow-screen regression checks in addition to chart and BLE checks.

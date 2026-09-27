@@ -1,19 +1,19 @@
-<% content_for :title, "Ask Muse · bbl" %>
-<div class="tracker" data-controller="theme" data-theme="dark">
+<% content_for :title, "Ask Muse · pose." %>
+<div class="tracker" data-controller="theme wearable-navigation" data-theme="dark">
   <main class="dashboard coach-page">
     <%= render "groups/header" %>
-    <div class="group-heading"><p class="eyebrow">SMALL ADJUSTMENTS. BETTER HABITS.</p><h1>Ask Muse</h1><p>Practical help for your desk, chair, and daily routine.</p></div>
-    <section class="panel muse-conversation" aria-label="Ergonomics help">
+    <div class="coach-heading"><h1>Ask Muse</h1><p>Desk setup &amp; habits</p></div>
+    <section class="muse-conversation" aria-label="Ergonomics help">
       <% if @error %><p class="coach-error" role="alert"><%= @error %></p><% end %>
       <% if @answer %><div class="muse-answer"><h2>Muse</h2><%= simple_format(@answer) %></div><% end %>
       <%= form_with url: coach_path, method: :post, data: { turbo: false } do |form| %>
-        <%= form.label :question, "What would you like to work on?" %>
-        <%= form.text_area :question, value: @question, required: true, maxlength: 2000, rows: 5, placeholder: "I keep leaning toward my laptop. What could I change about my desk setup?" %>
-        <p class="coach-sharing">Your question is sent to Meta Muse Spark. Your tracking history and group data are not included.</p>
+        <%= form.label :question, "What would you like to work on?", class: "sr-only" %>
+        <%= form.text_area :question, value: @question, required: true, maxlength: 2000, rows: 4, placeholder: "How can I improve my setup?" %>
+        <p class="coach-sharing">Only your question is shared with Meta Muse Spark.</p>
         <% unless Muse::Coach.configured? %><p class="coach-availability">Muse isn't connected yet.</p><% end %>
-        <%= form.submit "Ask Muse", class: "group-create-button", disabled: !Muse::Coach.configured?, data: { disable_with: "Asking Muse…" } %>
+        <%= form.button class: "group-create-button muse-submit", disabled: !Muse::Coach.configured?, data: { disable_with: "Asking Muse…" } do %>Ask Muse <span aria-hidden="true">→</span><% end %>
       <% end %>
     </section>
-    <p class="coach-footnote">General ergonomics guidance, not a medical assessment. Each question starts a new conversation.</p>
+    <p class="coach-footnote">General guidance · Each question starts fresh.</p>
   </main>
 </div>

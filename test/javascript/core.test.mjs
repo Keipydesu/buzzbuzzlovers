@@ -74,6 +74,8 @@ test('a newer reading during an in-flight write remains pending; no concurrent r
   await h.queue.flush(); assert.equal(h.calls.filter(c => c.method === 'PUT').length, 1)
   gate.resolve(); await first
   assert.equal(h.queue.size, 1); assert.equal(h.queue.pending.get(keyFor(device, 7)).snapshot.sequence, 182)
+  assert.equal(h.states.at(-1).needsAttention, false)
+  assert.equal(h.states.at(-1).message, 'Newer readings are still unsaved.')
   h.tick(1000); await h.queue.flush(); assert.equal(h.queue.size, 0)
 })
 test('temporary failure retries the newest cumulative values after backoff, honors Retry-After', async () => {
@@ -81,8 +83,11 @@ test('temporary failure retries the newest cumulative values after backoff, hono
   const h = harness((p, o) => ++attempts === 1 ? { status: 429, retryAfter: '5', body: {} } : success(p, o))
   h.queue.enqueue(device, snapshot(), 'first'); h.tick(1000); await h.queue.flush()
   h.queue.enqueue(device, snapshot({ sequence: 182 }), 'later')
+  assert.equal(h.states.at(-1).needsAttention, true)
+  assert.match(h.states.at(-1).message, /Saving unavailable/)
   h.tick(4999); await h.queue.flush(); assert.equal(attempts, 1)
   h.tick(1); await h.queue.flush(); assert.equal(attempts, 2); assert.equal(h.queue.size, 0)
+  assert.equal(h.states.at(-1).needsAttention, false)
 })
 test('queue never silently evicts a previous nonterminal session at capacity', () => {
   const h = harness(success, { limit: 1 })

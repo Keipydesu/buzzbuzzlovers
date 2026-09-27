@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { BluetoothTransport, SERVICE_UUID, IDENTITY_UUID } from '../../app/javascript/ble/bluetooth_transport.js'
-function setup() {
+import { BluetoothTransport, SERVICE_UUID, IDENTITY_UUID, WARNING_UUID, CONTROL_UUID } from '../../app/javascript/ble/bluetooth_transport.js'
+function setup(warningCharacteristic, controlCharacteristic) {
   const snapshots = [], statuses = [], events = new Map(), calls = []
   const bytes = new DataView(new ArrayBuffer(20)); const id = new DataView(new ArrayBuffer(16))
   const characteristic = {
@@ -13,7 +13,17 @@ function setup() {
     addEventListener: (type, fn) => events.set(type, fn), removeEventListener: type => events.delete(type),
     gatt: { disconnect: () => { calls.push('disconnect') }, connect: async () => ({ getPrimaryService: async uuid => {
       assert.equal(uuid, SERVICE_UUID)
-      return { getCharacteristic: async uuid => uuid === IDENTITY_UUID ? { readValue: async () => id } : characteristic }
+      return { getCharacteristic: async uuid => {
+        if (uuid === CONTROL_UUID) {
+          if (!controlCharacteristic) throw Object.assign(new Error('Missing optional control'), { name: 'NotFoundError' })
+          return controlCharacteristic
+        }
+        if (uuid === WARNING_UUID) {
+          if (!warningCharacteristic) throw Object.assign(new Error('Missing optional characteristic'), { name: 'NotFoundError' })
+          return warningCharacteristic
+        }
+        return uuid === IDENTITY_UUID ? { readValue: async () => id } : characteristic
+      } }
     } }) }
   }
   const transport = new BluetoothTransport({ onIdentity: value => { assert.equal(value, id); calls.push('identity') }, onSnapshot: v => snapshots.push(v), onStatus: s => statuses.push(s), secure: true,
@@ -54,4 +64,42 @@ test('a hung read on an old connection does not block a new connection read', as
   const result = connected
   finish(h.bytes); await old; await next
   assert.equal(result, true)
+})
+
+test('optional warning notifications and reads are generation-bound; old firmware still connects', async () => {
+  const values = [], listeners = new Map(), bytes = new DataView(new ArrayBuffer(14))
+  const warning = {
+    addEventListener: (type, fn) => listeners.set(type, fn),
+    removeEventListener: type => listeners.delete(type),
+    startNotifications: async () => {}, readValue: async () => bytes
+  }
+  const h = setup(warning)
+  h.transport.onWarning = v => values.push(v)
+  await h.transport.connect()
+  assert.equal(values.length, 1)
+  const callback = listeners.get('characteristicvaluechanged')
+  callback({ target: { value: bytes } }); assert.equal(values.length, 2)
+  h.transport.disconnect()
+  callback({ target: { value: bytes } }); assert.equal(values.length, 2)
+  assert.equal(listeners.size, 0)
+  const legacy = setup()
+  legacy.transport.onWarning = () => assert.fail('Old firmware has no warning feed')
+  await legacy.transport.connect()
+  assert.equal(legacy.statuses.at(-1), 'connected')
+})
+
+test('calibration writes the command with response and rejects missing or replaced connections', async () => {
+  const writes = []
+  const h = setup(null, { properties: { write: true }, writeValueWithResponse: async value => writes.push([...value]) })
+  await h.transport.connect()
+  assert.equal(h.transport.canCalibrate, true)
+  await h.transport.calibrate()
+  assert.deepEqual(writes, [[1, 1]])
+  const queued = h.transport.calibrate()
+  h.transport.disconnect()
+  await assert.rejects(queued, /disconnected/)
+  assert.equal(writes.length, 1)
+  const legacy = setup(); await legacy.transport.connect()
+  assert.equal(legacy.transport.canCalibrate, false)
+  await assert.rejects(legacy.transport.calibrate(), /firmware update/)
 })

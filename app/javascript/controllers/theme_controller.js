@@ -10,6 +10,24 @@ export default class extends Controller {
       if (["light", "dark"].includes(saved)) theme = saved
     } catch (_) { /* The toggle still works when storage is unavailable. */ }
     this.apply(theme)
+    this.updateBackground = () => {
+      if (this.backgroundFrame) return
+      this.backgroundFrame = requestAnimationFrame(() => {
+        // Offset most of the content scroll so the background drifts at 10% speed.
+        const offset = Math.max(window.scrollY, 0) * 0.9
+        this.element.style.setProperty("--background-offset", `${offset}px`)
+        this.backgroundFrame = null
+      })
+    }
+    window.addEventListener("scroll", this.updateBackground, { passive: true })
+    window.addEventListener("resize", this.updateBackground)
+    this.updateBackground()
+  }
+
+  disconnect() {
+    window.removeEventListener("scroll", this.updateBackground)
+    window.removeEventListener("resize", this.updateBackground)
+    cancelAnimationFrame(this.backgroundFrame)
   }
 
   toggle() {

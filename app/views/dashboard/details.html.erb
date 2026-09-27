@@ -1,0 +1,50 @@
+<% content_for :title, "Details · pose." %>
+<% content_for :head do %><meta name="turbo-cache-control" content="no-cache"><% end %>
+<div class="tracker" data-controller="theme wearable-navigation live-summary" data-theme="dark">
+  <a class="skip-link" href="#details">Skip to details</a>
+  <main class="dashboard visual-dashboard details-page">
+    <%= render "groups/header" %>
+    <section id="details" aria-labelledby="details-heading">
+      <div class="details-heading">
+        <h1 id="details-heading">Details</h1>
+        <nav class="period-selector" aria-label="Time frame">
+          <% %w[day week month].each do |period| %>
+            <%= link_to period.capitalize, details_path(period: period), aria: { current: ("page" if period == @period) } %>
+          <% end %>
+        </nav>
+      </div>
+      <p class="details-range"><%= @period == "day" ? @days.last.first.strftime("%B %-d, %Y") : "#{@days.first.first.strftime('%b %-d')} – #{@days.last.first.strftime('%b %-d, %Y')} · Last #{@days.length} days" %></p>
+      <div data-live-summary-target="content" data-live-summary-key="details">
+      <div class="panel details-totals">
+        <div class="session-metrics">
+          <div><span class="metric-label">Episodes</span><p><%= @summary[:episode_count] %></p></div>
+          <div><span class="metric-label">Tracked</span><p><%= number_with_precision(@summary[:tracked_seconds] / 60.0, precision: 1) %><span>min</span></p></div>
+          <div><span class="metric-label">Slouch</span><p><%= number_with_precision(@summary[:slouch_seconds] / 60.0, precision: 1) %><span>min</span></p></div>
+        </div>
+      </div>
+      <% if @period == "day" %>
+        <section class="daily-breakdown" aria-label="Tracked time breakdown">
+          <% if @summary[:tracked_seconds].positive? %>
+            <% share = @summary[:slouch_seconds].to_f / @summary[:tracked_seconds] * 100 %>
+            <div class="daily-breakdown-chart" role="img" aria-label="<%= number_with_precision(share, precision: 1) %>% slouching, <%= number_with_precision(100 - share, precision: 1) %>% upright">
+              <svg viewBox="0 0 160 160" aria-hidden="true">
+                <circle cx="80" cy="80" r="62" fill="none" stroke="var(--bar)" stroke-width="18" />
+                <circle cx="80" cy="80" r="62" fill="none" stroke="var(--gold)" stroke-width="18" pathLength="100" stroke-dasharray="<%= share %> 100" transform="rotate(-90 80 80)" />
+              </svg>
+              <div class="daily-breakdown-center"><strong><%= number_with_precision(share, precision: 1) %>%</strong><span>slouching</span></div>
+            </div>
+            <div class="legend breakdown-legend">
+              <span><i class="slouch-key" aria-hidden="true"></i>Slouching <strong><%= number_with_precision(@summary[:slouch_seconds] / 60.0, precision: 1) %> min</strong></span>
+              <span><i class="non-slouch-key" aria-hidden="true"></i>Upright <strong><%= number_with_precision(@summary[:non_slouch_seconds] / 60.0, precision: 1) %> min</strong></span>
+            </div>
+          <% else %>
+            <p class="details-empty">No tracked time saved for this day.</p>
+          <% end %>
+        </section>
+      <% else %>
+        <%= render "weekly", days: @days, heading: "Daily tracked time" %>
+      <% end %>
+      </div>
+    </section>
+  </main>
+</div>

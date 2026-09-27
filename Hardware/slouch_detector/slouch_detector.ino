@@ -12,6 +12,7 @@
 //
 // Wiring: BNO055 on I2C (SDA = GPIO 21, SCL = GPIO 22, address 0x28),
 //         red LED on GPIO 17 through a resistor to GND.
+#include <atomic>
 #include <Wire.h>
 #include <Preferences.h>
 #include <BLEDevice.h>
@@ -39,6 +40,8 @@ const uint8_t BNO_OPR_MODE_REG = 0x3D;
 const char *DEVICE_NAME = "bbl-posture";
 const char *SERVICE_UUID = "caa153e1-8bec-412c-a7ea-570bf12cbd13";
 const char *IDENTITY_UUID = "5a02ab16-022f-43a7-8b81-2d136526c605";
+const char *CONTROL_UUID = "883c8f42-529b-47ef-ae21-278020ae5c55";
+const char *WARNING_UUID = "9c052810-52d4-4fc9-9c03-f37e93874bc1";
 const char *SNAPSHOT_UUID = "3ea72a7d-ef99-4f43-95d7-d6860687824e";
 const uint8_t PROTOCOL_VERSION = 1;
 
@@ -55,6 +58,8 @@ const char *STATE_NAMES[] = {"idle", "calibrating", "upright", "slouching", "sen
 Adafruit_BNO055 bno = Adafruit_BNO055(55, BNO_ADDR, &Wire);
 Preferences prefs;
 BLECharacteristic *snapshotChar = nullptr;
+BLECharacteristic *warningChar = nullptr;
+std::atomic<bool> calibrationRequested{false};
 bool bleConnected = false;
 bool bnoReady = false;
 
@@ -81,12 +86,21 @@ int calCount = 0;
 // Shared qualification, episode and recovery timing (decision 017).
 PostureTiming postureTiming;
 
+class ControlCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *characteristic) override {
+    const auto value = characteristic->getValue();
+    // Version 1, command 1: calibrate. Run sensor work only in loop().
+    if (value.length() == 2 && value[0] == 1 && value[1] == 1) calibrationRequested.store(true);
+  }
+};
+
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *server) override {
     bleConnected = true;
     Serial.println("BLE: connected");
   }
   void onDisconnect(BLEServer *server) override {
+    calibrationRequested.store(false);
     bleConnected = false;
     Serial.println("BLE: disconnected, advertising again");
     BLEDevice::startAdvertising();
@@ -188,6 +202,15 @@ void publish() {
 
   snapshotChar->setValue(buf, sizeof(buf));
   if (bleConnected) snapshotChar->notify();
+  uint8_t warning[14];
+  warning[0] = 1;
+  warning[1] = postureTiming.warningPhase();
+  putU32(warning + 2, sessionId);
+  putU32(warning + 6, sequence);
+  putU16(warning + 10, postureTiming.warningElapsed(millis()));
+  putU16(warning + 12, episodeCount);
+  warningChar->setValue(warning, sizeof(warning));
+  if (bleConnected) warningChar->notify();
   lastPublish = millis();
   stateChanged = false;
 }
@@ -207,6 +230,11 @@ void setupBle() {
       SNAPSHOT_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
   snapshotChar->addDescriptor(new BLE2902());   // lets the browser subscribe to notifications
 
+  warningChar = service->createCharacteristic(
+      WARNING_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+  warningChar->addDescriptor(new BLE2902());
+  BLECharacteristic *control = service->createCharacteristic(CONTROL_UUID, BLECharacteristic::PROPERTY_WRITE);
+  control->setCallbacks(new ControlCallbacks());
   service->start();
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(SERVICE_UUID);
@@ -268,7 +296,9 @@ void classify(unsigned long now, bool ok) {
   float z = readPitch();
   float diff = angleDiff(z, baseline);   // negative = leaning forward
 
+  const uint8_t previousPhase = postureTiming.warningPhase();
   const PostureTiming::Update timing = postureTiming.update(now, diff < -THRESHOLD_DEG);
+  if (previousPhase != postureTiming.warningPhase()) stateChanged = true;
   if (timing.episode && episodeCount == UINT16_MAX) {
     // Never wrap a counter: end the session before accepting a new episode.
     clearDetection();
@@ -324,6 +354,7 @@ void loop() {
   if (state == STATE_UPRIGHT || state == STATE_SLOUCHING) trackedMs += dt;
   if (state == STATE_SLOUCHING) slouchMs += dt;
 
+  const bool softwareCalibration = calibrationRequested.exchange(false);
   if (!bnoReady) {
     static unsigned long lastRetry = 0;
     if (now - lastRetry >= 2000) {
@@ -334,6 +365,8 @@ void loop() {
         if (sessionId == 0) setState(STATE_IDLE);   // mid-session: classify() resumes it
       }
     }
+  } else if (softwareCalibration && state != STATE_CALIBRATING && state != STATE_ENDED) {
+    startCalibration();
   } else if (digitalRead(CAL_BUTTON) == LOW) {
     while (digitalRead(CAL_BUTTON) == LOW) delay(10);   // wait for release
     startCalibration();

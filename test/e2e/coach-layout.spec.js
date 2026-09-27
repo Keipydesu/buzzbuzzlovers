@@ -5,7 +5,7 @@ test('coach explains availability and sharing, validates, renders escaped respon
   await page.getByRole('link', { name: 'Ask Muse →' }).click();
   await expect(page.getByText("Muse isn't connected yet.")).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ask Muse', exact: true })).toBeDisabled();
-  await expect(page.getByText(/Your tracking history and group data are not included/)).toBeVisible();
+  await expect(page.getByText(/Only your question is shared with Meta Muse Spark/)).toBeVisible();
   fixture('coach', 'available');
   await page.reload();
   const question = page.getByLabel('What would you like to work on?');

@@ -16,6 +16,17 @@ Use saved tracked minutes split into device-classified non-slouch and slouch tim
 
 ## Consequences
 
+Page-owned Bluetooth transport is superseded by the persistent session in
+[decision 026](026-preserve-bluetooth-across-app-navigation.md).
+
+New-tab dashboard navigation is superseded by
+[decision 025](025-dashboard-in-current-tab.md).
+
+The expandable data table is subsequently removed under
+[decision 023](023-period-details-and-chart-only-history.md).
+Wearable-page totals are removed in favor of guided setup under
+[decision 024](024-guided-wearable-setup.md).
+
 The wearable page owns the existing transport and in-memory upload queue. Its dashboard link opens another tab so tracking can continue; navigating the wearable page itself disconnects Bluetooth and retains the existing unsaved-data confirmation. Dashboard history is loaded from saved data on page load/reload. Pairing-page Today metrics refresh after saves.
 
 Direct review of models, schema and all five migrations found no data-model change necessary. Authentication, ownership, device classification and ingestion remain unchanged. No dependencies are added. Physical BLE verification remains separate from automated fixture coverage.

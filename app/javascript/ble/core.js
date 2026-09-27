@@ -81,7 +81,9 @@ export class UploadQueue {
   get size() { return this.pending.size }
   emit() {
     const blocked = [...this.pending.values()].find(entry => entry.blocked)
-    this.onChange({ pending: this.size, saving: this.inflight, paused: this.paused, message: this.paused ? this.message : blocked?.error || this.message })
+    const retrying = [...this.pending.values()].some(entry => entry.attempts > 0)
+    const message = this.paused ? this.message : blocked?.error || (retrying ? "Saving unavailable. Unsaved readings will retry; keep this page open." : this.message)
+    this.onChange({ pending: this.size, saving: this.inflight, paused: this.paused, needsAttention: this.paused || Boolean(blocked) || retrying, message })
   }
   enqueue(deviceId, snapshot, firstObservedAt) {
     if (this.closed) return false

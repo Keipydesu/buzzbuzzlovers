@@ -1,8 +1,9 @@
 <% content_for :integrated_account_nav, "true" %>
-<header class="topbar compact-header">
-  <%= link_to "bbl.", root_path, class: "brand" %>
+<header class="topbar compact-header" data-wearable-navigation-target="header">
+  <%= link_to "pose.", root_path, class: "brand" %>
+  <span class="sr-only" role="status" data-wearable-navigation-target="connectionStatus">Wearable disconnected</span>
   <div class="compact-header-actions">
-    <% unless current_page?(wearable_path) %><%= link_to "Wearable →", wearable_path, class: "header-wearable" %><% end %>
+    <% unless current_page?(wearable_path) || current_page?(root_path) %><%= link_to "Wearable →", wearable_path, class: "header-wearable", data: { wearable_navigation_target: "headerLink" } %><% end %>
     <button type="button" class="theme-button" data-icon-only="true" data-theme-target="button" data-action="theme#toggle" aria-label="Switch to light mode">☀</button>
     <nav class="account-menu" aria-label="Account">
       <details>
@@ -12,10 +13,13 @@
         </summary>
         <div class="account-menu-panel">
           <span><%= current_user.username %></span>
+          <%= link_to "Wearable →", wearable_path, class: "account-wearable-link" %>
           <%= button_to "Log out", logout_path, method: :delete %>
         </div>
       </details>
     </nav>
   </div>
 </header>
+<div class="posture-notice" role="status" aria-live="polite" data-wearable-navigation-target="postureNotice" hidden><span aria-hidden="true">↑</span> Sit upright · Relax your shoulders</div>
+<%= link_to "Saving needs attention · Wearable →", wearable_path, class: "wearable-session-notice", data: { wearable_navigation_target: "sessionNotice" }, hidden: true %>
 <% unless current_page?(root_path) %><%= link_to "← Your tracking", root_path, class: "back-link" %><% end %>

@@ -8,6 +8,33 @@
 .tracker .wearable-actions button[hidden], .tracker [hidden] { display: none; }
 .tracker .wearable-identity { font-family: monospace; font-size: 11px; color: var(--muted); }
 .tracker .wearable-posture { font-weight: 600; }
+.tracker .wearable-dashboard-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; margin-top: 18px; border-radius: 0; font-size: 14px; }
+.tracker .wearable-dashboard-button[hidden] { display: none; }
+.tracker .wearable-step { margin: 24px 0; }
+.tracker .pairing-stages { display: flex; justify-content: space-between; gap: 8px; padding: 0; margin: 12px 0 24px; list-style: none; color: var(--muted); font-size: 11px; }
+.tracker .pairing-stages li { display: flex; align-items: center; gap: 5px; }
+.tracker .pairing-stages li > span { font-size: 10px; }
+.tracker .pairing-stages [aria-current="step"], .tracker .pairing-stages .is-complete { color: var(--accent-text); }
+.tracker .pairing-stages [aria-current="step"] { font-weight: 700; }
+.tracker .pairing-ready { margin-top: 24px; }
+.tracker .wearable-step h2 { margin-bottom: 8px; }
+.tracker .wearable-step > p:not(.eyebrow) { color: var(--muted); max-width: 36rem; }
+.tracker .wearable-step .competition-primary { border-radius: 0; }
+.tracker .wearable-actions:has(> button:only-child[hidden]) { display: none; }
 .tracker .fixture-banner { background: var(--gold); color: #051e39; font-weight: 700; padding: 10px; }
 .tracker .wearable-panel [role="status"] { font-size: 13px; }
 .tracker .session-metrics p > [data-device-target] { font-size: inherit; color: inherit; margin: 0; }
+
+.tracker .wearable-panel.grain-panel::before, .tracker .wearable-panel.grain-panel::after { background-size: 55% 100%; background-position: top right; background-repeat: no-repeat; transition: background-size 900ms cubic-bezier(.65, 0, .9, .45), opacity 900ms cubic-bezier(.65, 0, .9, .45); }
+.tracker .wearable-panel.grain-panel::before { background-image: radial-gradient(ellipse at top right, color-mix(in srgb, var(--grain-accent) 55%, #000), transparent 85%); opacity: .1; }
+.tracker .wearable-panel.grain-panel::after { opacity: .3; }
+.tracker .wearable-panel[data-setup-step="1"]::before, .tracker .wearable-panel[data-setup-step="1"]::after { background-size: 110% 100%; }
+.tracker .wearable-panel[data-setup-step="1"]::before { opacity: .25; }
+.tracker .wearable-panel[data-setup-step="1"]::after { opacity: .55; }
+.tracker .wearable-panel[data-setup-step="2"]::before, .tracker .wearable-panel[data-setup-step="2"]::after { background-size: 190% 140%; }
+.tracker .wearable-panel[data-setup-step="2"]::before { opacity: .5; }
+.tracker .wearable-panel[data-setup-step="2"]::after { opacity: .85; }
+.tracker .connection-notice { min-height: 1.5em; }
+.tracker .connection-notice.is-quiet { visibility: hidden; }
+.tracker .wearable-actions:not(:has(button:not([hidden]))) { display: none; }
+@media (prefers-reduced-motion: reduce) { .tracker .wearable-panel.grain-panel::before, .tracker .wearable-panel.grain-panel::after { transition: none; } }

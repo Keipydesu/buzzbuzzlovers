@@ -37,6 +37,8 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
     assert_redirected_to login_path
     get wearable_path
     assert_redirected_to login_path
+    get details_path
+    assert_redirected_to login_path
     get coach_path
     assert_redirected_to login_path
     [ api_v1_devices_path, api_v1_today_path, api_v1_weekly_path ].each do |path|
@@ -53,8 +55,13 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
     get root_path
     assert_response :ok
     assert_select "h2", text: "Today"
+    assert_select "a#today[href=?]", details_path
+    assert_select "#today .session-metrics", count: 0
     assert_select ".landing-page", count: 0
     assert_equal "no-store", response.headers["Cache-Control"]
+    get details_path
+    assert_response :ok
+    assert_select "#details .session-metrics .metric-label", count: 3
     delete logout_path
     get root_path
     assert_response :ok

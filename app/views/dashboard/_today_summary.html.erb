@@ -1,0 +1,24 @@
+<% tracked = @summary[:tracked_seconds] %>
+<% slouch = @summary[:slouch_seconds] %>
+<% non_slouch = tracked - slouch %>
+<% slouch_share = tracked.positive? ? slouch.to_f / tracked * 100 : 0 %>
+<%= link_to details_path, id: "today", class: "panel today-summary", data: { live_summary_target: "content", live_summary_key: "today" } do %>
+  <div>
+    <h2>Today</h2>
+    <% if @summary[:session_count].zero? %>
+      <p class="today-summary-empty">No saved activity yet</p>
+    <% else %>
+      <p class="today-summary-value"><%= number_with_precision(slouch / 60.0, precision: 1) %><span>min slouching</span></p>
+    <% end %>
+  </div>
+  <div class="today-summary-visual">
+    <svg class="today-mini-chart" viewBox="0 0 72 72" role="img" aria-label="<%= tracked.positive? ? "Slouching: #{slouch} seconds (gold). Upright: #{non_slouch} seconds." : "No tracked time to chart" %>">
+      <circle class="today-mini-track" cx="36" cy="36" r="28" fill="none" stroke-width="8" />
+      <% if tracked.positive? %>
+        <circle class="today-mini-non-slouch" cx="36" cy="36" r="28" fill="none" stroke-width="8" pathLength="100" stroke-dasharray="<%= 100 - slouch_share %> 100" stroke-dashoffset="<%= -slouch_share %>" transform="rotate(-90 36 36)" />
+        <circle class="today-mini-slouch" cx="36" cy="36" r="28" fill="none" stroke-width="8" pathLength="100" stroke-dasharray="<%= slouch_share %> 100" transform="rotate(-90 36 36)" />
+      <% end %>
+    </svg>
+    <span class="today-summary-arrow" aria-hidden="true">→</span>
+  </div>
+<% end %>
