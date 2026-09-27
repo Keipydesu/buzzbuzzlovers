@@ -5,6 +5,38 @@ class Muse::ConversationTest < ActiveSupport::TestCase
   setup { @key = "conversation-test-#{SecureRandom.uuid}" }
   teardown { Muse::Conversation.reset!(@key) }
 
+  test "analysis stage is server-owned, failure safe, and cleared by reset or expiry" do
+    Muse::Conversation.exchange(@key, question: "analyze", intent: "analyze") do |history, stage|
+      assert_empty history
+      assert_equal :opening, stage
+      "What were you doing?"
+    end
+    assert_raises(Muse::Coach::Unavailable) do
+      Muse::Conversation.exchange(@key, question: "coding") do |_, stage|
+        assert_equal :follow_up, stage
+        raise Muse::Coach::Unavailable
+      end
+    end
+    Muse::Conversation.exchange(@key, question: "coding") do |_, stage|
+      assert_equal :follow_up, stage
+      "Try one change."
+    end
+    Muse::Conversation.reset!(@key)
+    Muse::Conversation.exchange(@key, question: "what next?") do |history, stage|
+      assert_empty history
+      assert_nil stage
+      "Tell me more."
+    end
+    Muse::Conversation.exchange(@key, question: "analyze", intent: "analyze") { "Question?" }
+    travel 31.minutes do
+      Muse::Conversation.exchange(@key, question: "remember?") do |history, stage|
+        assert_empty history
+        assert_nil stage
+        "Tell me what you tried."
+      end
+    end
+  end
+
   test "concurrent exchanges each see complete preceding exchanges" do
     started = Queue.new
     finish = Queue.new
@@ -35,7 +67,7 @@ class Muse::ConversationTest < ActiveSupport::TestCase
     started = Queue.new
     finish = Queue.new
     pending = Thread.new do
-      Muse::Conversation.exchange(@key, question: "old question") do
+      Muse::Conversation.exchange(@key, question: "old question", intent: "analyze") do
         started << true
         finish.pop
         "old answer"
@@ -49,7 +81,8 @@ class Muse::ConversationTest < ActiveSupport::TestCase
     finish << true
     assert_equal :discarded, Timeout.timeout(5) { pending.value }
     assert_empty Muse::Conversation.for(@key)
-    Muse::Conversation.exchange(@key, question: "new question") do |history|
+    Muse::Conversation.exchange(@key, question: "new question") do |history, stage|
+      assert_nil stage
       assert_empty history
       "new answer"
     end

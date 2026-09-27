@@ -54,3 +54,44 @@ test('scripted demo uses prior topic without claiming live AI', () => {
   assert.match(chat.demoReply('Just the built-in one'), /setup we’re discussing/)
   assert.match(chat.demoReply('My arm is numb'), /healthcare professional/)
 })
+test('analysis sends explicit intent and ordinary follow-up uses server-owned stage', async () => {
+  const requests = []
+  const chat = harness(async (_, options) => { requests.push(JSON.parse(options.body)); return { ok: true, json: async () => ({ answer: requests.length === 1 ? 'What were you doing?' : 'Try one change.' }) } })
+  await chat.analyze(event)
+  assert.deepEqual(requests[0], { question: 'Analyze my posture', intent: 'analyze' })
+  chat.inputTarget.value = 'Coding on the couch'
+  await chat.send(event)
+  assert.equal(requests[1].intent, 'chat')
+  assert.equal(requests[1].history, undefined)
+  assert.equal(chat.messages[1].content, 'What were you doing?')
+  assert.equal(chat.messages[3].content, 'Try one change.')
+})
+test('failed analysis retains intent for retry without scripted fallback', async () => {
+  const requests = []
+  const chat = harness(async (_, options) => { requests.push(JSON.parse(options.body)); return { ok: false, status: 503, json: async () => ({ error: 'Retry analysis' }) } })
+  await chat.analyze(event)
+  assert.equal(chat.inputTarget.value, 'Analyze my posture')
+  assert.equal(chat.messages.length, 0)
+  assert.equal(chat.errorTarget.textContent, 'Retry analysis')
+  await chat.send(event)
+  assert.equal(requests[1].intent, 'analyze')
+  chat.inputTarget.value = 'A different question'
+  await chat.send(event)
+  assert.equal(requests[2].intent, 'chat')
+})
+test('analysis is unavailable in demo mode and reset discards pending analysis', async () => {
+  let release
+  let calls = 0
+  const chat = harness(() => { calls++; return new Promise(resolve => { release = resolve }) })
+  chat.liveValue = false
+  await chat.analyze(event)
+  assert.equal(calls, 0)
+  chat.liveValue = true
+  const pending = chat.analyze(event)
+  assert.equal(chat.busy, true)
+  chat.reset()
+  release({ ok: true, json: async () => ({ answer: 'Late analysis' }) })
+  await pending
+  assert.equal(chat.messages.length, 0)
+  assert.equal(chat.retryIntent, null)
+})

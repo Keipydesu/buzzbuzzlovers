@@ -8,7 +8,13 @@ class CoachController < ApplicationController
   end
 
   def create
-    @question = params[:question]
+    intent = params.fetch(:intent, "chat")
+    unless %w[chat analyze].include?(intent)
+      @error = "Choose a valid conversation action."
+      @history = Muse::Conversation.for(current_user.id)
+      return respond_with_error(:unprocessable_entity)
+    end
+    @question = intent == "analyze" ? Muse::Coach::ANALYSIS_QUESTION : params[:question]
     unless @question.is_a?(String) && @question.strip.length.between?(1, 2000)
       @question = "" unless @question.is_a?(String)
       @error = "Ask a question between 1 and 2,000 characters."
@@ -16,7 +22,7 @@ class CoachController < ApplicationController
       return respond_with_error(:unprocessable_entity)
     end
 
-    answer = Muse::Coach.new.call(@question.strip, user: current_user)
+    answer = Muse::Coach.new.call(@question.strip, user: current_user, intent: intent)
     respond_to do |format|
       format.json { render json: { answer: answer } }
       format.html { redirect_to coach_path, status: :see_other }

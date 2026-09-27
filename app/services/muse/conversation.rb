@@ -18,14 +18,15 @@ module Muse
 
     # Serialize provider calls so each question sees the preceding complete
     # exchange. Never hold STORE_LOCK across network I/O: reset stays immediate.
-    def self.exchange(key, question:)
+    def self.exchange(key, question:, intent: "chat")
       REQUEST_LOCKS[key.hash % REQUEST_LOCKS.size].synchronize do
         entry = STORE_LOCK.synchronize do
           STORE.fetch(cache_key(key), expires_in: EXPIRES_IN) do
             { token: SecureRandom.uuid, turns: [] }
           end
         end
-        answer = yield entry[:turns]
+        stage = intent == "analyze" ? :opening : entry[:analysis] ? :follow_up : nil
+        answer = yield entry[:turns], stage
         STORE_LOCK.synchronize do
           current = STORE.read(cache_key(key))
           # Reset, expiry or eviction must not let an old answer resurrect history.
@@ -35,7 +36,7 @@ module Muse
             { role: "user", content: question },
             { role: "assistant", content: answer }
           ]).last(MAX_EXCHANGES * 2)
-          STORE.write(cache_key(key), { token: entry[:token], turns: turns }, expires_in: EXPIRES_IN)
+          STORE.write(cache_key(key), { token: entry[:token], turns: turns, analysis: stage.present? }, expires_in: EXPIRES_IN)
         end
         answer
       end
