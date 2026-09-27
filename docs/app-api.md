@@ -72,7 +72,7 @@ The observation object is required. `first_observed_at` is the browser's first o
 
 On the first successful insert, freeze `first_observed_at`, configured app timezone, and `calendar_day = first_observed_at in that timezone`. Store `first_received_at` separately using server time. Later observations never change the bucket, even if a new tab reports a different first observation. A uniqueness race means the first committed observation wins; do not claim it is the earliest observation across all browsers. A saved session's bucket does not move if configuration later changes.
 
-This is **first-observed-date grouping**, not measured activity per calendar day. Label the chart “Sessions by first-seen date.” Unknown earlier sessions and cross-midnight splits remain unsolved until firmware provides time-bucketed history. Older documents call this “browser-observed start date”; it is the same approximation, not an actual start event.
+This is **first-observed-date grouping**, not measured activity per calendar day. The user-facing calendar caption was removed at the user’s request under [decision 020](decisions/020-competition-first-uncluttered-dashboard.md); the underlying allocation policy is unchanged. Unknown earlier sessions and cross-midnight splits remain unsolved until firmware provides time-bucketed history. Older documents call this “browser-observed start date”; it is the same approximation, not an actual start event.
 
 ## Atomic reconciliation and acknowledgments
 

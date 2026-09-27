@@ -1,7 +1,7 @@
 const { test, expect, login, logout, noOverflow } = require('./support/helpers');
 async function connect(page) {
   await login(page);
-  await page.goto('/?ble_fixture=1');
+  await page.goto('/wearable?ble_fixture=1');
   await expect(page.getByText('SIMULATED WEARABLE · isolated test data')).toBeVisible();
   await page.getByRole('button', { name: 'Connect wearable', exact: true }).click();
   await expect(page.locator('[data-device-target="connection"]')).toContainText('Bluetooth connected');
@@ -41,7 +41,7 @@ test('wearable fixture saves through the real API, refreshes totals, and separat
   const last = await (await page.request.get('/api/v1/devices/00000000000000000000000000000001/session')).json();
   expect(last.session.ended).toBe(false);
   await noOverflow(page);
-  expect((await page.locator('#today').boundingBox()).y).toBeLessThan((await page.locator('.wearable-panel').boundingBox()).y);
+  await expect(page.getByRole('link', { name: 'View dashboard ↗' })).toHaveAttribute('target', '_blank');
   await info.attach('wearable.png', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await expect(page.locator('.tracker')).toHaveCSS('color', 'rgb(5, 30, 57)');
@@ -132,8 +132,8 @@ test('pending data blocks accidental navigation; account switch in another tab p
   await emit(page);
   await expect(saving(page)).toContainText('Saving unavailable');
   page.once('dialog', dialog => dialog.dismiss());
-  await page.getByRole('link', { name: 'Your groups / join a group' }).click();
-  await expect(page).toHaveURL('/?ble_fixture=1');
+  await page.getByRole('link', { name: '← Your tracking' }).click();
+  await expect(page).toHaveURL('/wearable?ble_fixture=1');
   const other = await context.newPage();
   await other.goto('/');
   await logout(other);
@@ -143,12 +143,14 @@ test('pending data blocks accidental navigation; account switch in another tab p
   expect((await (await other.request.get('/api/v1/today')).json()).summary.session_count).toBe(0);
 });
 
-test('normal dashboard never enables fixture controls and unsupported browsers retain saved history', async ({ page }) => {
+test('dashboard separates pairing and unsupported wearable page never enables fixtures', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, 'bluetooth', { value: undefined, configurable: true }));
   await login(page);
+  await expect(page.getByRole('button', { name: 'Connect wearable', exact: true })).toHaveCount(0);
+  await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
+  await page.getByRole('link', { name: 'Wearable →' }).click();
   await expect(page.getByRole('button', { name: 'Connect wearable', exact: true })).toBeDisabled();
   await expect(page.locator('[data-device-target="connection"]')).toContainText('Bluetooth unavailable');
-  await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
   await expect(page.getByText('SIMULATED WEARABLE · isolated test data')).toHaveCount(0);
   expect(await page.evaluate(() => typeof window.__bblFixture)).toBe('undefined');
 });
@@ -157,7 +159,7 @@ test('a save during summary refresh triggers another refresh instead of leaving 
   await connect(page);
   let release, holding = false, first = true;
   const gate = new Promise(resolve => { release = resolve; });
-  await page.route('**/api/v1/weekly', async route => {
+  await page.route('**/api/v1/today', async route => {
     if (first) { first = false; holding = true; await gate; }
     await route.continue();
   });

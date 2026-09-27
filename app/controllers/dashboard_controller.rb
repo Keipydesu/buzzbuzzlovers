@@ -15,4 +15,10 @@ class DashboardController < ApplicationController
     @competition = WeeklyCompetitionQuery.new(group: @group).call if @group
     @entry = @competition&.entries&.find { |entry| entry.user == current_user }
   end
+
+  def wearable
+    @timezone = Rails.application.config.x.demo_timezone
+    today = Time.current.in_time_zone(@timezone).to_date
+    @summary = DailySummaryQuery.call(date: today, sessions: current_user.posture_sessions)
+  end
 end

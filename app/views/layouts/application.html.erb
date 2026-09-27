@@ -26,7 +26,7 @@
   </head>
 
   <body data-bbl-account="<%= current_user&.id %>">
-    <% if current_user %>
+    <% if current_user && !content_for?(:integrated_account_nav) %>
       <nav class="account-nav" aria-label="Account"><span><%= current_user.username %></span><%= button_to "Log out", logout_path, method: :delete %></nav>
     <% end %>
     <%= yield %>

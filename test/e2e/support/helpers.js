@@ -39,6 +39,9 @@ async function signup(page, username) {
   await expect(page.getByRole('navigation', { name: 'Account' })).toContainText(username.trim().toLowerCase());
 }
 async function logout(page) {
+  if (!(await page.getByRole('button', { name: 'Log out' }).isVisible())) {
+    await page.getByLabel('Account menu', { exact: true }).click();
+  }
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL('/login');
   await expect(page.getByRole('navigation', { name: 'Account' })).toHaveCount(0);

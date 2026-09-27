@@ -20,6 +20,8 @@ Cross-week sessions are not split into measured activity intervals. Incomplete s
 
 The saved-data dashboard replaces synthetic activity with real totals and a seven-day table. Half-hour frequency charts remain deferred until firmware supplies timed activity; this is a data limitation, not a new classification rule. Browser BLE integration and hosted Tiger Data rollout remain separate work.
 
+The table-only personal history presentation is superseded by [decision 019](019-separate-pairing-and-weekly-chart.md); scoring and saved-data semantics remain unchanged.
+
 ## Related documents
 
 - [MVP implementation](../social-competition-implementation-plan.md)

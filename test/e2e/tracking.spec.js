@@ -14,8 +14,10 @@ test('saved tracking survives refresh, retries, stale data and ending; remains a
   const today = page.locator('#today');
   await expect(today).toContainText('20.0');
   await expect(today).toContainText('3.0');
-  await expect(today).toContainText('1 unfinished sessions included.');
+  await expect(today).not.toContainText('unfinished sessions');
   await expect(page.locator('.personal-history tbody tr')).toHaveCount(7);
+  await expect(page.locator('.saved-week-column').last()).toHaveAttribute('aria-label', /20.0 minutes tracked, 3.0 minutes slouching/);
+  await page.getByText('View data table', { exact: true }).click();
   await expect(page.locator('.personal-history tbody tr').last()).toContainText('20.0');
   expect((await upload(page, { sequence: 3, tracked: 1200, slouch: 180, episodes: 2, state: 'ended' })).ok()).toBe(true);
   expect((await upload(page, { sequence: 4, tracked: 1300, slouch: 180, episodes: 2 })).status()).toBe(409);
@@ -82,6 +84,9 @@ test('zero-duration saved sessions differ from missing history and joining inclu
   expect((await upload(page, { tracked: 0, slouch: 0, episodes: 0 })).ok()).toBe(true);
   await page.reload();
   await expect(page.getByText('No saved activity today.')).not.toBeVisible();
+  await expect(page.locator('.saved-week-zero')).toHaveCount(1);
+  await expect(page.locator('.saved-week-missing')).toHaveCount(6);
+  await page.getByText('View data table', { exact: true }).click();
   await expect(page.locator('.personal-history tbody tr').last().getByRole('cell')).toHaveText(['0.0', '0.0']);
   const group = await createGroup(page);
   await expect(page.locator('.ranking-you .member-score')).toHaveText('Unranked');

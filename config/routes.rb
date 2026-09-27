@@ -16,6 +16,7 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   root "dashboard#show"
+  get "wearable", to: "dashboard#wearable", as: :wearable
   get "groups/join/:code", to: "group_invitations#show", as: :group_invitation
   post "groups/join", to: "group_invitations#create", as: :join_group
   resources :groups, only: %i[index create show] do

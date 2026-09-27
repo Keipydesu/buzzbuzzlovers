@@ -1,0 +1,57 @@
+<% recorded = @week.filter_map { |_date, summary| summary if summary[:session_count].positive? } %>
+<% maximum = [@week.map { |_date, summary| summary[:tracked_seconds] / 60.0 }.max.ceil, 1].max %>
+<% average = recorded.empty? ? nil : recorded.sum { |summary| summary[:tracked_seconds] } / 60.0 / recorded.length %>
+<section class="panel history-panel" aria-labelledby="weekly-heading">
+  <div class="weekly-heading">
+    <h2 id="weekly-heading">Your last seven days</h2>
+    <span class="chart-caption">Minutes</span>
+  </div>
+  <div class="legend weekly-legend" aria-label="Chart legend">
+    <span><i class="non-slouch-key" aria-hidden="true"></i>Device-classified non-slouch</span>
+    <span><i class="slouch-key" aria-hidden="true"></i>Slouch</span>
+  </div>
+  <div class="saved-week-chart">
+    <div class="saved-week-axis" aria-hidden="true"><span><%= maximum %></span><span><%= number_with_precision(maximum / 2.0, precision: 1, strip_insignificant_zeros: true) %></span><span>0</span></div>
+    <div class="saved-week-plot">
+      <% unless average.nil? %><div class="saved-week-average" style="bottom: <%= average / maximum * 100 %>%" aria-hidden="true"></div><% end %>
+      <% @week.each do |date, summary| %>
+        <% tracked = summary[:tracked_seconds] / 60.0; slouch = summary[:slouch_seconds] / 60.0; missing = summary[:session_count].zero? %>
+        <div class="saved-week-column <%= 'today-column' if date == @week.last.first %>" role="img" aria-label="<%= date.strftime('%A %B %-d') %>: <%= missing ? 'No data' : "#{number_with_precision(tracked, precision: 1)} minutes tracked, #{number_with_precision(slouch, precision: 1)} minutes slouching" %>">
+          <% if missing %>
+            <span class="saved-week-missing" aria-hidden="true">—</span>
+          <% elsif tracked.zero? %>
+            <span class="saved-week-zero" aria-hidden="true">0</span>
+          <% else %>
+            <div class="saved-week-bar" style="height: <%= tracked / maximum * 100 %>%" aria-hidden="true">
+              <span class="non-slouch-bar"></span>
+              <span class="slouch-bar" style="height: <%= slouch / tracked * 100 %>%"></span>
+            </div>
+          <% end %>
+          <span class="saved-week-day" aria-hidden="true"><%= date.strftime('%a') %><small><%= date.day %></small></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="weekly-footnote">
+    <% if average.nil? %>
+      <span>No saved activity this week.</span>
+    <% else %>
+      <span><i class="average-key" aria-hidden="true"></i>Avg tracked <strong><%= number_with_precision(average, precision: 1) %> min</strong> / recorded day</span>
+    <% end %>
+    <span>— No data</span>
+  </div>
+  <details class="weekly-data">
+    <summary>View data table</summary>
+    <table class="personal-history">
+      <caption>Saved minutes</caption>
+      <thead><tr><th scope="col">Day</th><th scope="col">Tracked min</th><th scope="col">Slouch min</th></tr></thead>
+      <tbody>
+        <% @week.each do |date, summary| %>
+          <tr><th scope="row"><%= date.strftime('%a %-d') %></th>
+          <% if summary[:session_count].zero? %><td colspan="2">No data</td>
+          <% else %><td><%= number_with_precision(summary[:tracked_seconds] / 60.0, precision: 1) %></td><td><%= number_with_precision(summary[:slouch_seconds] / 60.0, precision: 1) %></td><% end %></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </details>
+</section>

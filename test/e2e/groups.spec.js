@@ -2,7 +2,7 @@ const { test, expect, login, logout, signup, createGroup, noOverflow } = require
 
 test('create group, validate name, join by normalized code, repeat, leave and rejoin', async ({ page }) => {
   await login(page);
-  await page.getByRole('link', { name: 'Your groups / join a group' }).click();
+  await page.getByRole('link', { name: 'Your groups' }).click();
   await expect(page.getByText('Create a group or join your friends with a code.')).toBeVisible();
   await page.getByLabel('Group name').fill('   ');
   await page.getByRole('button', { name: 'Create group', exact: true }).click();

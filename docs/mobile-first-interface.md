@@ -8,7 +8,7 @@ Preserve the simple navy, gold, and white tracker style from [decision 004](deci
 
 Visitors at `/` see an introduction with account creation and login links. Signed-in users at the same address see their saved dashboard. Login and signup use the same visual language. Private group and tracking data remain behind authentication.
 
-On the dashboard, keep personal statistics easy to reach alongside the friend competition, per [decision 011](decisions/011-social-competition-direction.md). The compact phone layout in [decision 009](decisions/009-compact-goal-above-today.md) is a useful earlier layout reference; its sample goal is not a current feature. The saved-data behavior in [decision 014](decisions/014-weekly-competition-implementation-defaults.md) takes precedence over historical preview charts.
+On the dashboard, keep personal statistics easy to reach alongside the friend competition, per [decision 011](decisions/011-social-competition-direction.md). The compact phone layout in [decision 009](decisions/009-compact-goal-above-today.md) is a useful earlier layout reference; its sample goal is not a current feature. The saved-data behavior in [decision 014](decisions/014-weekly-competition-implementation-defaults.md) takes precedence over historical preview charts. [Decision 019](decisions/019-separate-pairing-and-weekly-chart.md) restores real weekly bars and moves pairing to `/wearable`; [decision 020](decisions/020-competition-first-uncluttered-dashboard.md) places weekly competition first and consolidates the header.
 
 ## Layout and interaction requirements
 

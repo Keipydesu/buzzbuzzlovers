@@ -76,12 +76,12 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 
 *Owner: TBD (proposed: claude)*
 
-The public `/` introduces bbl before account creation or login; signed-in visitors see saved personal/group totals. Landing, login, and signup follow the [mobile-first UI requirements](mobile-first-interface.md) with light/dark themes. The original sample charts, goal ring, and milestones are historical previews, not current saved-data features. Browser BLE is implemented with fixture-based coverage; physical verification and the remaining unchecked acceptance items are unfinished.
+The public `/` introduces bbl before account creation or login; signed-in visitors see saved personal/group totals. Landing, login, and signup follow the [mobile-first UI requirements](mobile-first-interface.md) with light/dark themes. The dashboard leads with weekly competition and has a real seven-day stacked chart and compact Today totals; pairing/live readings moved to `/wearable` under [decision 019](decisions/019-separate-pairing-and-weekly-chart.md). The original daily frequency chart, goal ring, and milestones are historical previews. Browser BLE is implemented with fixture-based coverage; physical verification and the remaining unchecked acceptance items are unfinished.
 
 - [x] Mobile-first dashboard: connection status, live posture/session state (synthetic browser coverage; physical check pending)
 - [ ] Trend-first dashboard with today’s frequency bar chart; agree device time buckets/events and coverage before connecting real timeline data
-- [ ] Today's totals view (tracked duration, slouch duration, episode count)
-- [ ] Weekly history view
+- [x] Today's saved totals (tracked duration, slouch duration, episode count)
+- [x] Seven-day saved history chart, recorded-day average, and accessible data table (first-seen-date grouping)
 - [ ] Daily challenge progress/reward display
 - [ ] Empty states before any activity is recorded; any sample data clearly labeled and separated from real history
 - [ ] End-to-end demo rehearsal against the acceptance criteria in MVP.md
