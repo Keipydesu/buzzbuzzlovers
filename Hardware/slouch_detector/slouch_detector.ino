@@ -1,8 +1,9 @@
 // Slouch detector with BLE telemetry.
 //
 // Press BOOT while sitting upright to set the "upright" pitch (z). Leaning forward
-// past THRESHOLD_DEG is a detected slouch; leaning back never counts. The red LED
-// blinks when a 10-second lean qualifies and stops after 3 seconds upright.
+// past THRESHOLD_DEG is a detected slouch; leaning back never counts. The BLE state
+// follows the posture immediately (slouching while leaning, upright otherwise).
+// The red LED blinks when a 10-second lean qualifies and stops after 3 seconds upright.
 // Qualification credits the initial 10 seconds and counts one episode; shorter
 // leans count for neither. Recovery time stays in the same slouch episode.
 //
@@ -314,7 +315,8 @@ void classify(unsigned long now, bool ok) {
     episodeCount++;
     Serial.printf(">>> episode %u counted\n", episodeCount);
   }
-  setState(postureTiming.slouching() ? STATE_SLOUCHING : STATE_UPRIGHT);
+  // Live posture: report slouching as soon as you lean forward, upright as soon as you don't.
+  setState(diff < -THRESHOLD_DEG ? STATE_SLOUCHING : STATE_UPRIGHT);
 
   Serial.printf("z=%7.2f diff=%+7.2f lean=%5.1fs alert=%-3s | %-9s tracked=%lus slouch=%lus episodes=%u seq=%lu %s\n",
                 z, diff, postureTiming.leanDuration(now) / 1000.0, postureTiming.slouching() ? "ON" : "off",
@@ -352,8 +354,12 @@ void loop() {
   // Credit the time since the last tick to the state we were in during it.
   unsigned long dt = now - lastTick;
   lastTick = now;
-  if (state == STATE_UPRIGHT || state == STATE_SLOUCHING) trackedMs += dt;
-  if (state == STATE_SLOUCHING) slouchMs += dt;
+  if (state == STATE_UPRIGHT || state == STATE_SLOUCHING) {
+    trackedMs += dt;
+    // Slouch time follows the 10 s qualification timer, not the live state, so the
+    // grace period is credited only once (via qualifiedMs in classify()).
+    if (postureTiming.slouching()) slouchMs += dt;
+  }
 
   const bool softwareCalibration = calibrationRequested.exchange(false);
   if (!bnoReady) {
