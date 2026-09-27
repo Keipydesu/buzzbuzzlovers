@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "bbl" %></title>
+    <title><%= content_for(:title) || "pose." %></title>
+    <%# Prefetch responses can race logout and restore a stale cookie session. %>
+    <meta name="turbo-prefetch" content="false">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="bbl">
+    <meta name="application-name" content="pose.">
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -23,8 +25,8 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <% if current_user %>
+  <body data-bbl-account="<%= current_user&.id %>">
+    <% if current_user && !content_for?(:integrated_account_nav) %>
       <nav class="account-nav" aria-label="Account"><span><%= current_user.username %></span><%= button_to "Log out", logout_path, method: :delete %></nav>
     <% end %>
     <%= yield %>

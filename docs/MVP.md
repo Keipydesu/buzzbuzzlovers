@@ -1,5 +1,10 @@
 # MVP plan
 
+
+Current follow-up: [decision 017](decisions/017-ten-second-slouch-grace.md) replaces the one-minute rule with ten-second qualification/full-candidate credit and three-second reset. [Decision 018](decisions/018-mvp-first-connection-registration.md) replaces mandatory manual provisioning with trusted first-use registration for MVP. Existing ownership remains protected; stronger enrollment is still required for an untrusted public rollout. Historical proposals below yield to these decisions.
+
+Current integration reference (2026-09-26): [hardware integration plan](hardware-integration-plan.md), [BLE source contract](ble-protocol.md), and [current API](app-api.md). Firmware now exists under `Hardware/`; accounts, ownership, canonical sessions, and atomic accepted history are implemented in Rails. The immediate target is the local demo; the browser adapter is implemented with automated fixture coverage; physical device validation remains pending. Historical proposals below are superseded where they describe absent hardware/accounts/history or public hosting as the immediate milestone.
+
 ## Product goal
 
 Help people who spend long hours at their desks understand how often and how long they slouch, review a week of tracking, and build awareness through simple gamification.
@@ -22,7 +27,7 @@ The wearable is responsible for sensing and calculating posture. The app is prim
 | History | Weekly view |
 | Motivation | Gamified posture-awareness progress |
 
-No build deadline has been set. Tiger Data integration is the chosen storage direction; service tier/region, Rails host, authentication design, supporting tools, sensor, and sensor-angle threshold remain open. Slouch qualification requires more than 60 continuous seconds; see [decision 006](decisions/006-one-minute-slouch-qualification.md). See [the hosted storage plan](data-storage.md).
+No build deadline has been set. Tiger Data integration is the chosen storage direction; service tier/region, Rails host, authentication design, supporting tools, sensor, and sensor-angle threshold remain open. Slouch qualification now requires at least 10 continuous seconds, credits the full candidate, and resets after 3 seconds upright; see [decision 017](decisions/017-ten-second-slouch-grace.md). See [the hosted storage plan](data-storage.md).
 
 ## Proposed first complete loop
 
@@ -47,7 +52,7 @@ Calibration, session controls, and the exact challenge mechanics are proposals t
 - Expose computed results through a BLE service.
 - Define session boundaries and what happens when Bluetooth disconnects or the device restarts.
 
-The persistence requirement is more than 60 continuous seconds, counting a sustained episode once. Sensor-angle thresholds, filtering, sensor placement, and recovery behavior must be tested on the selected hardware. Values from the discarded prototype are not established requirements.
+The persistence requirement is at least 10 continuous seconds, counting a sustained episode once and crediting that full candidate. Three continuous upright seconds reset detection. Sensor-angle thresholds, filtering, sensor placement, and recovery behavior must be tested on the selected hardware. Values from the discarded prototype are not established requirements.
 
 ### Web app
 
@@ -105,7 +110,7 @@ Rails and Tiger Data online storage are stated directions. Supporting tools and 
 - A lost connection is visible and is not shown as live upright posture.
 - Daily and weekly summaries use recorded data, with any sample week explicitly labeled.
 - The chosen daily challenge updates from recorded activity.
-- Online users can access only their own devices and history; guessing a device ID does not grant ownership.
+- Users can access only their own devices and history. Trusted MVP first-claim registration assigns unused IDs; it is not proof of possession. Existing-owned IDs cannot be claimed by guessing them.
 - Accepted revisions update canonical sessions and append history atomically; retries create no extra history or rewards.
 - Internet or cloud-database failure leaves BLE status truthful and marks pending data unsaved.
 

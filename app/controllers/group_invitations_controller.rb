@@ -14,6 +14,8 @@ class GroupInvitationsController < ApplicationController
     invitation.join!(current_user)
     session.delete(:invitation_code)
     redirect_to group_path(invitation.group), status: :see_other
+  rescue ActiveRecord::RecordNotFound
+    redirect_to groups_path, alert: "Invite code was not found. Check it and try again.", status: :see_other
   end
 
   private

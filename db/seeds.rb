@@ -7,3 +7,9 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+if ENV["POSE_DEMO_SEED"] == "1"
+  require Rails.root.join("lib/demo_friend_group")
+  group = DemoFriendGroup.seed!
+  puts "#{group.name}: #{group.group_invitation.code} (/groups/#{group.id})"
+end

@@ -1,36 +1,31 @@
-<% content_for :title, "bbl" %>
-<div class="tracker" data-controller="theme" data-theme="dark">
+<% content_for :title, "pose." %>
+<% content_for :head do %><meta name="turbo-cache-control" content="no-cache"><% end %>
+<div class="tracker" data-controller="theme wearable-navigation live-summary" data-theme="dark">
   <a class="skip-link" href="#today">Skip to today’s stats</a>
-  <main class="dashboard">
+  <main class="dashboard visual-dashboard">
     <%= render "groups/header" %>
-    <section class="panel competition-hero">
-      <p class="eyebrow">THIS WEEK'S RACE</p>
-      <% if @group %>
-        <h1><%= @group.name %></h1>
-        <div class="competition-standing"><div class="standing-rank"><%= @entry.rank ? "##{@entry.rank}" : "—" %><span>your rank</span></div><div class="standing-message"><p><%= @entry.ratio ? "#{number_with_precision(@entry.ratio.to_f * 100, precision: 2)}% slouch share" : "No recorded activity this week yet." %></p></div></div>
-        <%= link_to "See leaderboard →", group_path(@group), class: "competition-primary" %>
-      <% else %>
-        <h1>Better habits with friends</h1><p>Create a group or use a friend's invite code to start competing.</p>
+    <%= link_to wearable_path, class: "panel connect-wearable-card grain-panel", data: { wearable_navigation_target: "connectCard" } do %>
+      <span>Connect your wearable →</span>
+    <% end %>
+    <% if @group %>
+      <%= link_to group_path(@group), class: "panel competition-hero competition-summary", aria: { label: "This week's race — view team rankings" } do %>
+        <p class="eyebrow">THIS WEEK'S RACE</p>
+        <div class="competition-standing">
+          <div class="standing-rank"><span class="sr-only">Rank </span><%= @entry.rank ? "##{@entry.rank}" : "—" %></div>
+        </div>
+        <span class="competition-summary-arrow" aria-hidden="true">→</span>
       <% end %>
-      <%= link_to "Your groups / join a group", groups_path, class: "group-link" %>
-    </section>
-    <section id="today" class="panel frequency-panel">
-      <h2>Today's recorded stats</h2><p class="chart-caption">Sessions by first-seen date · <%= @timezone %></p>
-      <div class="session-metrics">
-        <div><span class="metric-label">Episodes</span><p><%= @summary[:episode_count] %></p></div>
-        <div><span class="metric-label">Tracked time</span><p><%= number_with_precision(@summary[:tracked_seconds] / 60.0, precision: 1) %><span>min</span></p></div>
-        <div><span class="metric-label">Slouch time</span><p><%= number_with_precision(@summary[:slouch_seconds] / 60.0, precision: 1) %><span>min</span></p></div>
-      </div>
-      <% if @summary[:session_count].zero? %><p>No saved activity today.</p><% end %>
-      <% if @summary[:incomplete_session_count].positive? %><p><%= @summary[:incomplete_session_count] %> unfinished sessions included.</p><% end %>
-      <p class="frequency-rule">Episode counts come from your wearable. A slouch counts after more than one minute.</p>
-    </section>
-    <section class="panel history-panel">
-      <h2>Your last seven days</h2><p class="chart-caption">Saved sessions by first-seen date</p>
-      <table class="personal-history"><thead><tr><th scope="col">Day</th><th scope="col">Tracked min</th><th scope="col">Slouch min</th></tr></thead><tbody>
-      <% @week.each do |date, summary| %><tr><th scope="row"><%= date.strftime("%a %-d") %></th><% if summary[:session_count].zero? %><td colspan="2">No data</td><% else %><td><%= number_with_precision(summary[:tracked_seconds] / 60.0, precision: 1) %></td><td><%= number_with_precision(summary[:slouch_seconds] / 60.0, precision: 1) %></td><% end %></tr><% end %>
-      </tbody></table>
-    </section>
-    <section class="panel muse-entry"><div><h2>Find your next adjustment</h2><p>Ask Muse for help with your desk setup and habits.</p></div><%= link_to "Ask Muse →", coach_path, class: "group-link" %></section>
+    <% else %>
+      <%= link_to groups_path, class: "panel competition-hero competition-invite" do %>
+        <p class="eyebrow">THIS WEEK'S RACE</p>
+        <span class="competition-invite-label">Join group →</span>
+      <% end %>
+    <% end %>
+    <%= render "today_summary" %>
+    <div class="weekly-card-link" data-live-summary-target="content" data-live-summary-key="weekly">
+      <%= render "weekly" %>
+      <%= link_to "View week details", details_path(period: "week"), class: "weekly-details-link" %>
+    </div>
+    <section class="panel muse-entry"><h2>Desk setup &amp; habits</h2><%= link_to "Ask Muse →", coach_path, class: "group-link" %></section>
   </main>
 </div>

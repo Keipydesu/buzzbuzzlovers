@@ -24,6 +24,8 @@ Direct review of models, schema, migrations, API, and BLE documents found no sch
 
 The top-of-page ordering is subsequently refined by [decision 009](009-compact-goal-above-today.md).
 
+Dashboard ordering and the visible first-seen-date caption are subsequently refined by [decision 020](020-competition-first-uncluttered-dashboard.md). Calendar allocation semantics remain unchanged.
+
 ## Related documents
 
 - [Focused interface](004-focused-health-tracker-interface.md)

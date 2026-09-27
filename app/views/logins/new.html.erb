@@ -1,10 +1,26 @@
-<main class="account-page">
-  <h1>Log in to bbl</h1>
-  <% if flash[:alert] %><p role="alert"><%= flash[:alert] %></p><% end %>
-  <%= form_with url: login_path do |form| %>
-    <%= form.label :username %><%= form.text_field :username, required: true, autocomplete: "username", maxlength: 24 %>
-    <%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "current-password" %>
-    <%= form.submit "Log in" %>
-  <% end %>
-  <p>New here? <%= link_to "Create an account", signup_path %></p>
-</main>
+<% content_for :title, "Log in · pose." %>
+<div class="tracker" data-controller="theme" data-theme="dark">
+  <main class="auth-page">
+    <div class="panel auth-card">
+      <div class="auth-card-top">
+        <%= link_to "pose.", root_path, class: "brand auth-brand" %>
+        <button type="button" class="theme-button" data-theme-target="button" data-action="theme#toggle" aria-label="Switch to light mode">☀ Light mode</button>
+      </div>
+      <h1>Welcome back</h1>
+      <p class="auth-subtitle">Your recorded habits and this week's competition are waiting.</p>
+      <% if flash[:alert] %><p role="alert" class="auth-alert"><%= flash[:alert] %></p><% end %>
+      <%= form_with url: login_path, class: "auth-form" do |form| %>
+        <div class="field">
+          <%= form.label :username %>
+          <%= form.text_field :username, required: true, autocomplete: "username", maxlength: 24 %>
+        </div>
+        <div class="field">
+          <%= form.label :password %>
+          <%= form.password_field :password, required: true, autocomplete: "current-password" %>
+        </div>
+        <%= form.submit "Log in", class: "auth-submit" %>
+      <% end %>
+      <p class="auth-switch">New here? <%= link_to "Create an account", signup_path %></p>
+    </div>
+  </main>
+</div>

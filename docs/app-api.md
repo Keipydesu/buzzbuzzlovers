@@ -1,47 +1,43 @@
-# App API proposal
+# App API contract
 
-**Status: v1 contract with a Rails scaffold under review; hosted account and Tiger Data integration proposed.** This is the app-side contract for [APP_PLAN.md](APP_PLAN.md). The ESP32 uses [BLE telemetry](ble-protocol.md), not HTTP: the browser reads its identity and snapshots, maps the state enum to a string, and sends JSON to Rails. Neither HTTP nor BLE v1 provides browser-issued calibration/start/end commands.
+**Status: current Rails v1 API, reviewed against source on 2026-09-26; browser integration is implemented; physical device validation remains pending.** The [hardware integration plan](hardware-integration-plan.md) connects the existing firmware to these endpoints. The ESP32 uses [BLE telemetry](ble-protocol.md), not HTTP. The browser reads device identity and calculated snapshots, maps enum states to strings, and forwards them unchanged. Neither protocol defines browser-issued calibration/start/end commands.
 
-## Account implementation update
+## Current deployment and ownership
 
-Username/password login and administrator-provisioned device ownership now replace the no-login profile. See [MVP authentication](authentication-mvp.md). All endpoints require authentication (`401`); unknown and non-owned devices return `404`. Registration only acknowledges an existing owned binding (`200`) and cannot create or claim a device. Reads and summaries are account-scoped. The remaining hosted/Tiger Data work below stays proposed; older single-profile/201 descriptions are historical scaffold context.
+The immediate target is an authenticated local demo under [decision 015](decisions/015-local-mvp-demo.md). Username/password login uses Rails cookie sessions; unused devices register to the signed-in account on first upload preflight under [decision 018](decisions/018-mvp-first-connection-registration.md). See [account setup](authentication-mvp.md). All data endpoints require authentication (`401`); unknown/non-owned devices return `404` on reads/uploads. Registration claims unused identities or empty unowned rows, and acknowledges same-owner retries (`200`). Other-owned devices and unowned legacy history return `404` on registration.
 
-## Boundary and deployment assumptions
+Mutations send `Content-Type: application/json`, `X-CSRF-Token` from the rendered Rails page, and same-origin cookies. Keep request-forgery protection. Login/signup are browser form flows, not JSON endpoints in this API. A BLE device ID is public identity, not an ownership credential. No client-supplied user ID is accepted. The current `users` table has no timezone field: personal summaries and ingestion use configured `DEMO_TIMEZONE` (default `America/New_York`), with each session's calendar metadata frozen on creation. Weekly group rankings use the separate Monday–Sunday rules in [decision 014](decisions/014-weekly-competition-implementation-defaults.md).
 
-Hosted target: authenticated users access Rails over HTTPS, and Rails stores canonical sessions plus accepted-snapshot history in Tiger Cloud as proposed in [data-storage.md](data-storage.md). The local single-profile scaffold is a prototype, not a deployable multi-user service. Derive account and timezone from the authenticated session; no client-supplied profile or owner IDs are accepted. Multiple devices per user are for replacement/testing, not concurrent wear; overlapping sessions must be flagged before interpreting their sum as personal tracked time.
+Canonical sessions and accepted-revision history are already written atomically by `Snapshots::Ingest`. Local PostgreSQL stores history as an ordinary table; explicitly configured Timescale targets support hypertables. Hosted deployment, possession-proof enrollment, retention, and operations remain separate [storage-plan](data-storage.md) work. No new Rails schema or endpoint is proposed for the current hardware payload. Multiple devices per user support replacement/testing; summed overlapping sessions are not de-overlapped personal exposure.
 
-The browser and Rails share an origin. Mutations send `Content-Type: application/json`, the Rails CSRF token, and same-origin cookies. Keep Rails request-forgery protection; device identity alone grants no ownership. Do not expose the no-login demo on a public/LAN interface. Hosting or separate wearer accounts requires a chosen authentication and authorization model first. [Rails security guide](https://guides.rubyonrails.org/security.html)
+## Request and response rules
 
-All API responses are JSON and use `Cache-Control: no-store`. Parse integers strictly: floats, numeric strings, booleans, nulls, and out-of-range values are invalid. Reject unknown request fields in v1 so contract drift is visible. Enforce an 8 KiB request-body limit before JSON decoding, including CSRF parameter access and request logging; oversized bodies return `413` even when malformed. JSON media-type parameters such as `charset=utf-8` are accepted. Dates below are ISO dates; timestamps are RFC 3339 instants with an explicit offset, stored as UTC.
+Controller API responses are JSON with `Cache-Control: no-store`. Parse integers strictly: floats, numeric strings, booleans, nulls, and out-of-range values are invalid. Unknown fields are rejected. The middleware enforces an 8 KiB request-body limit before JSON decoding, including CSRF parameter access and request logging; oversized bodies return `413` even when malformed. JSON media-type parameters such as `charset=utf-8` are accepted. Dates below are ISO dates; timestamps are RFC 3339 instants with an explicit offset, stored as UTC.
 
-## Hosted contract additions (proposed, not implemented)
-
-Keep snapshot bodies and reconciliation dispositions unchanged. Require authentication on every data endpoint (`401` if absent), resolve devices within the current user (`404` for unknown or non-owned devices), and derive all owner fields on the server. Registration may use an administrator-provisioned binding for a closed pilot; general enrollment needs a separate possession-proof flow before rollout. A bare device ID never authorizes a claim. Existing `403` CSRF behavior remains.
-
-The route table below uses the demo profile in the local prototype and the authenticated account in the hosted target. Summary timezone means that account's configured timezone, frozen separately per session. On accepted ingestion only, write the canonical session and one hypertable row in the same transaction; duplicates, stale revisions, and failures append nothing. See [data-storage.md](data-storage.md) for uniqueness, retention, migration, and access-control checks.
+Malformed path segments can fail route constraints before reaching a controller and return a routing `404`, potentially non-JSON. A client must check status/content type before parsing, and must not interpret every `404` as a device enrollment problem. Controller-reachable invalid paths return structured `400 invalid_path`. Error precedence also depends on authentication, CSRF, content type, and the body-size middleware; examples assume a valid authenticated request unless stated otherwise.
 
 ## Routes
 
 | Method and path | Purpose | Success |
 | --- | --- | --- |
-| `POST /api/v1/devices` | Register a BLE identity in the demo profile | `201` created; `200` existing |
+| `POST /api/v1/devices` | Register an unused BLE identity to this account, or acknowledge its existing ownership | `200` |
 | `GET /api/v1/devices` | List registered devices for reload/reconnect UI | `200` |
 | `PUT /api/v1/devices/:device_id/sessions/:device_session_id/snapshot` | Create or reconcile the latest cumulative snapshot | `200` with disposition |
 | `GET /api/v1/devices/:device_id/session` | Read the last-known session for this device | `200`, session may be null |
-| `GET /api/v1/today` | Summary and challenge for the configured profile's current date | `200`, explicit empty shape |
+| `GET /api/v1/today` | Summary and challenge for the configured app timezone's current date | `200`, explicit empty shape |
 | `GET /api/v1/weekly` | Seven consecutive dates ending today in the configured timezone | `200`, exactly seven rows |
 
-Path `device_id` is exactly 32 lowercase hex characters decoded from the 16-byte identity. `device_session_id` is a decimal integer from `1` through `4294967295`. It is the firmware session ID, not the Rails row ID. Unknown registered devices return `404`; snapshot ingestion never implicitly registers one. Session `0` is browser-only idle state, never activity.
+Path `device_id` is exactly 32 lowercase hex characters decoded from the 16-byte identity. `device_session_id` is a decimal integer from `1` through `4294967295`. It is the firmware session ID, not the Rails row ID. Unknown or non-owned devices return `404`; snapshot ingestion never implicitly registers one. Session `0` is browser-only pre-session status, including `idle` or boot-time `sensor_error`, never persisted activity.
 
 ## Register and list devices
 
-After reading identity, register explicitly:
+After reading the exact 16-byte identity, register it to the signed-in account or acknowledge its existing ownership on first positive-session upload:
 
 ```json
 {"device_id":"00112233445566778899aabbccddeeff"}
 ```
 
-The response is `{"device":{"device_id":"00112233445566778899aabbccddeeff"}}`. Repeating registration for the same ID returns the same object and never erases data. List returns `{"devices":[{"device_id":"00112233445566778899aabbccddeeff"}]}` or an empty array. Device selection is not a Bluetooth connection; the user still needs the browser's permission flow.
+The response is `{"device":{"device_id":"00112233445566778899aabbccddeeff"}}`. Repeating acknowledgement for an owned ID returns the same object and never erases data. A `404 device_not_found` means the identity is unavailable to this account (another owner or legacy unowned history); repeated POSTs cannot transfer it. Registration is trust on first HTTP claim, not proof of possession. Owner/history details are not disclosed; unused identity availability is observable. List returns `{"devices":[{"device_id":"00112233445566778899aabbccddeeff"}]}` or an empty array. Device selection is not a Bluetooth connection; the user still needs the browser's permission flow.
 
 ## Ingest a snapshot
 
@@ -51,11 +47,11 @@ Example: `PUT /api/v1/devices/00112233445566778899aabbccddeeff/sessions/7/snapsh
 {
   "snapshot": {
     "protocol_version": 1,
-    "state": "upright",
-    "sequence": 12,
-    "tracked_seconds": 60,
-    "slouch_seconds": 10,
-    "episode_count": 2
+    "state": "slouching",
+    "sequence": 181,
+    "tracked_seconds": 180,
+    "slouch_seconds": 70,
+    "episode_count": 1
   },
   "observation": {
     "first_observed_at": "2026-09-26T02:00:00Z"
@@ -74,9 +70,9 @@ Example: `PUT /api/v1/devices/00112233445566778899aabbccddeeff/sessions/7/snapsh
 
 The observation object is required. `first_observed_at` is the browser's first observation of this device/session, retained across retries in that tab. It is not the wearable's start timestamp. Validate the timestamp and reject values more than five minutes in the server's future as a clock error. Do not derive start time by subtracting tracked seconds: calibration and unclassified gaps are excluded from that counter.
 
-On the first successful insert, freeze `first_observed_at`, configured timezone, and `calendar_day = first_observed_at in that timezone`. Store `first_received_at` separately using server time. Later observations never change the bucket, even if a new tab reports a different first observation. A uniqueness race means the first committed observation wins; do not claim it is the earliest observation across all browsers. A saved session's bucket does not move if configuration later changes.
+On the first successful insert, freeze `first_observed_at`, configured app timezone, and `calendar_day = first_observed_at in that timezone`. Store `first_received_at` separately using server time. Later observations never change the bucket, even if a new tab reports a different first observation. A uniqueness race means the first committed observation wins; do not claim it is the earliest observation across all browsers. A saved session's bucket does not move if configuration later changes.
 
-This is **first-observed-date grouping**, not measured activity per calendar day. Label the chart “Sessions by first-seen date.” Unknown earlier sessions and cross-midnight splits remain unsolved until firmware provides time-bucketed history. The BLE proposal's “browser-observed start date” wording refers to this same approximation, not an actual start event.
+This is **first-observed-date grouping**, not measured activity per calendar day. The user-facing calendar caption was removed at the user’s request under [decision 020](decisions/020-competition-first-uncluttered-dashboard.md); the underlying allocation policy is unchanged. Unknown earlier sessions and cross-midnight splits remain unsolved until firmware provides time-bucketed history. Older documents call this “browser-observed start date”; it is the same approximation, not an actual start event.
 
 ## Atomic reconciliation and acknowledgments
 
@@ -103,11 +99,11 @@ Success is always `200`, including first insertion:
     "device_session_id": 7,
     "snapshot": {
       "protocol_version": 1,
-      "state": "upright",
-      "sequence": 12,
-      "tracked_seconds": 60,
-      "slouch_seconds": 10,
-      "episode_count": 2
+      "state": "slouching",
+      "sequence": 181,
+      "tracked_seconds": 180,
+      "slouch_seconds": 70,
+      "episode_count": 1
     },
     "ended": false,
     "first_observed_at": "2026-09-26T02:00:00Z",
@@ -119,31 +115,55 @@ Success is always `200`, including first insertion:
 }
 ```
 
-`disposition` is `accepted`, `duplicate`, or `stale`; `session` always reflects stored state read consistently within reconciliation. This is a persistence acknowledgment, not proof of a current Bluetooth connection. Do not replace fresher local telemetry with an older HTTP acknowledgment. An acknowledgment at revision N clears only pending revisions through N for that device/session.
+`disposition` is `accepted`, `duplicate`, or `stale`; `session` always reflects stored state read consistently within reconciliation. This is a persistence acknowledgment, not proof of a current Bluetooth connection. Do not replace fresher local telemetry with an older HTTP acknowledgment. A `stale` acknowledgment describes server state, not proof that a conflicting lower local measurement was accepted; compare returned identity, session, revision, and counters before clearing pending data. An acknowledgment at revision N clears only pending revisions through N for that device/session.
 
 Errors use `{"error":{"code":"snapshot_conflict","message":"This revision has different recorded values."},"session":{...}}`, with the same complete session shape when an existing authorized row is involved; omit `session` otherwise. No partial writes on error.
 
 | Status | Cases | Browser action |
 | --- | --- | --- |
 | `400` | Malformed JSON or invalid path format | Show request error; do not retry unchanged |
+| `401` | Missing/expired login | Pause uploads; reauthenticate as the same account before resuming |
 | `403` | Failed CSRF/origin checks | Stop upload; refresh/re-establish app session |
-| `404` | Device not registered | Register the connected identity, then retry |
-| `409` | `snapshot_conflict`, `session_ended` | Stop automatic retries for that session and show error |
+| `404` | `device_not_found`: unavailable registration, unknown/non-owned read/upload; or unmatched route | For structured device error, use the original account or another wearable; for routing/non-JSON error, fix the request. Do not transfer ownership or blindly retry |
+| `409` | `snapshot_conflict`, `session_ended` | Stop automatic retries; apply the narrowly defined terminal-heartbeat reconciliation below for `session_ended` only |
 | `413` / `415` | Body too large / wrong content type | Correct request format |
 | `422` | `invalid_snapshot`, `invalid_observation`, `counter_regression` | Show validation error; no unchanged retry |
 | `429` / `5xx` / network error | Temporary failure | Retain pending values and back off; honor `Retry-After` |
 
 ## Browser adapter and synchronization
 
-1. On a click, discover the advertised service; read and validate identity; register it with Rails. If Rails is unavailable, live display may proceed with an explicit unsaved state and registration retry.
+1. On a click, discover the advertised service; read and validate identity; register its identity with Rails on first positive-session upload. If Rails is temporarily unavailable, live display may proceed with an explicit unsaved state and bounded retry. Bind the queue to the logged-in account, and pause saving on `401`, `403`, or a missing binding.
 2. Subscribe, then read the cached snapshot. Decode the exact 20-byte format; reject invalid versions/states. Validate by session and revision so a late read cannot overwrite a newer notification. Serialize GATT operations and attach handlers to the active connection generation.
-3. Live status uses BLE only: unsupported, disconnected, connecting, connected, or stale; posture state is a separate value. No new revision for three seconds means stale. Sensor error is distinct from a connection failure. On tab resume, mark live status unknown until a fresh read/heartbeat succeeds.
-4. Keep the latest unsaved cumulative snapshot per session in memory, preserving each session's first-observed time. Send at most one HTTP request at a time, coalescing during a one-second upload interval. Terminal snapshots are queued immediately after any in-flight request.
+3. Live status uses BLE only: unsupported, disconnected, connecting, connected, or stale; posture state is a separate value. No new valid revision for three seconds means stale while tracking. A held BOOT button may cause this without a disconnect. Ended status is terminal; display link/liveness separately and never imply continued tracking. Sensor error is distinct from a connection failure. On tab resume, mark live status unknown until a fresh read/heartbeat succeeds.
+4. Keep the latest unsaved cumulative snapshot per session in memory, preserving each session's first-observed time. Send at most one upload/preflight request at a time, coalescing during a one-second upload interval. Terminal snapshots are queued immediately after any in-flight request.
 5. On temporary HTTP failure retry after 1, 2, 4, 8, then at most 30 seconds with jitter. Bluetooth can remain live while saving is offline. Do not treat an older response as confirmation of a newer pending revision.
-6. Preserve terminal snapshots for previous sessions while a new session starts. Bound the queue to 100 sessions; if full, show a blocking unsaved-data warning before accepting another session into the app queue. Never silently evict records. This cannot stop device tracking under read-only BLE.
+6. Preserve the latest unsaved snapshot for every previous session, including nonterminal sessions lost on a reboot, while a new session starts. Bound the queue to 100 sessions; if full, show a blocking unsaved-data warning before accepting another session into the app queue. Never silently evict records. This cannot stop device tracking under read-only BLE.
 7. Disconnect tears down listeners but does not end device tracking or clear unsaved records. Page closure/reload loses this provisional in-memory queue. Show an unsaved indicator; a browser unload prompt is best-effort only. Reconnection recovers only snapshots the device still retains. Durable browser outbox/device history are separate scope upgrades.
 
-Use a transport interface (`connect`, `disconnect`, `onSnapshot`, `onStatus`) with real BLE and deterministic fixture adapters. Fixtures must be visibly labeled and use separate demo records so testing cannot contaminate actual history. No raw-angle processing in either adapter.
+Use a transport interface (`connect`, `disconnect`, `onSnapshot`, `onStatus`) with real BLE and deterministic fixture adapters. Fixtures must be visibly labeled and use separate demo records so testing cannot contaminate actual history. No raw-angle processing in either adapter. The fixture adapter must use an isolated test/demo account and device namespace; the production path cannot silently enable fixtures.
+
+### Adaptation to the current firmware
+
+[Decision 016](decisions/016-integrate-existing-hardware.md) makes the checked-in firmware the integration baseline. These rules are implemented by `app/javascript/ble/` and the Stimulus device controller:
+
+- Current firmware qualifies at 10 seconds, credits the full candidate once, counts one episode, and stops after 3 continuous upright seconds (including recovery time). Shorter leans contribute nothing. See [decision 017](decisions/017-ten-second-slouch-grace.md). Transport the measured values unchanged; do not run another browser timer or reinterpret old-firmware counters.
+- Display session `0` diagnostics but do not enqueue them. The first BOOT calibration allocates a positive session; recalibration retains that session's counters. Reboot returns to session `0`; the next calibration normally allocates a higher session ID. Scope sequence ordering to `(device_id, session_id)`, with a connection-generation guard for old callbacks. Do not let a delayed older session replace the currently observed newer session.
+- The device has no ordinary end action. Disconnect, stale readings, page closure, and reboot never synthesize `ended`. Save known totals and show the old session as incomplete. Power-off can lose unsaved totals. Same-session reconnect recovers the latest RAM counters; it cannot recover overwritten sessions.
+- On the first `ended` snapshot, latch its exact payload/revision and retry that immutable snapshot until acknowledged. Later firmware heartbeats with the same session, version, terminal state, and counters but a higher sequence are transport liveness only: suppress their uploads. A state/counter change after ended is a protocol error. No fabricated revision or rewritten counter is permitted.
+- Before uploading after reconnect/reload, read the server's latest session. If its key matches the observed session and it is already ended with identical version/state/counters, treat those totals as saved and suppress the redundant terminal upload. If another tab wins a terminal-save race, a `409 session_ended` includes authorized stored state: apply the same exact key/version/state/counter comparison and stop retrying only if it matches. Otherwise surface an error. The latest-session endpoint cannot fetch older sessions; an older queued session uses its PUT response for reconciliation. Do not loosen Rails' ended-session rule.
+- Ignore lower revisions as stale (they may be delayed packets); do not treat every lower sequence as proof of a reboot. A newer revision with regressing counters, equal-revision conflicts, or evidence of reused identity/session IDs must stop saving that session with a protocol error. An apparent sequence wrap cannot be distinguished reliably from old data from sequence alone; keep it stale/unsaved and require operator diagnosis. Do not guess a new identity, offset, session number, or wrap epoch. Firmware persistence failures and overflow are documented limits, not permission to fabricate measurements.
+- Capture `first_observed_at` once when the browser first sees a positive session, before network requests. Preserve it during coalescing/retry/reconnect in that tab; never calculate it as current time minus tracked time.
+- On logout, stop the transport and uploader, invalidate pending callbacks, and visibly resolve/discard unsaved data according to the user's choice before account switching. A queue created under account A must never resume under account B, even if a request was in flight when the cookie changed. On expired login, retain only an account-bound paused queue until the same account reauthenticates. The controller binds its lifetime to the rendered account ID, invalidates callbacks on exit, and listens for cross-tab account changes; no bearer token is added to the BLE protocol.
+
+### Realistic cross-layer fixture
+
+Identity bytes `00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff` produce `00112233445566778899aabbccddeeff`. This 20-byte snapshot maps to the request above (session `7`, revision `181`, slouching, `180` tracked seconds, `70` slouch seconds, `1` episode):
+
+```text
+01 03 07 00 00 00 b5 00 00 00 b4 00 00 00 46 00 00 00 01 00
+```
+
+The old `60/10/2 episodes` fixture in [BLE decoding checks](ble-protocol.md#review-fixtures-and-verification) is a synthetic range/layout test only; it is not reachable as qualified episode history in this firmware.
 
 ## Read responses and summary semantics
 
@@ -159,23 +179,23 @@ Use a transport interface (`connect`, `disconnect`, `onSnapshot`, `onStatus`) wi
   "summary": {
     "session_count": 1,
     "incomplete_session_count": 1,
-    "tracked_seconds": 60,
-    "slouch_seconds": 10,
-    "non_slouch_seconds": 50,
-    "episode_count": 2,
-    "non_slouch_percent": 83.33
+    "tracked_seconds": 180,
+    "slouch_seconds": 70,
+    "non_slouch_seconds": 110,
+    "episode_count": 1,
+    "non_slouch_percent": 61.11
   },
   "challenge": {
     "id": "track_20_minutes",
     "target_seconds": 1200,
-    "progress_seconds": 60,
+    "progress_seconds": 180,
     "completed": false,
     "earned_points": 0
   }
 }
 ```
 
-The proposed challenge awards 50 points once per date when tracked seconds reach 1200; derive it from saved totals rather than incrementing points on uploads. Cap progress at 1200. This mechanic is a proposal pending product confirmation. Incomplete session totals count as observed partial activity and remain labeled incomplete.
+The existing legacy `ChallengeQuery` returns 50 derived points per date when tracked seconds reach 1200; derive it from saved totals rather than incrementing points on uploads. Cap progress at 1200. This legacy API field is not the group scoring rule or a newly approved reward; the saved dashboard uses the competition decisions instead. Incomplete session totals count as observed partial activity and remain labeled incomplete.
 
 Sum counters once per session, not once per snapshot. `non_slouch_seconds = tracked_seconds - slouch_seconds`; percentage is `100 * sum(non_slouch_seconds) / sum(tracked_seconds)`, rounded to two decimals. Never average per-session percentages. It describes device-classified non-slouch time, not medically correct posture.
 
@@ -191,8 +211,8 @@ An empty summary has zero counts/durations, `non_slouch_percent: null`, and zero
 - An ended snapshot can be retried; a higher revision cannot reopen it.
 - Revision 13 arriving while revision 12 uploads remains pending after the revision-12 acknowledgment.
 - BLE disconnect, HTTP failure, tab suspension, reload, and unregistered identity produce distinct, truthful UI states.
-- Retry on the next day does not move an existing session's bucket; UTC-to-profile-timezone and midnight examples match chart labels.
+- Retry on the next day does not move an existing session's bucket; UTC-to-configured-timezone and midnight examples match chart labels.
 - Two sessions of 60/10 and 120/60 tracked/slouch seconds produce 180 tracked, 70 slouch, 110 non-slouch, and 61.11%, not the mean of their percentages.
 - Empty dates, partial sessions, challenge threshold, and repeated uploads behave consistently without inventing observations or extra rewards.
 
-These are acceptance requirements, not a claim that all scaffold tests pass. Offline all-day history, device commands, and the final calendar policy still require team decisions. Online storage is now the chosen direction; implement the account, enrollment, and operational gates in [data-storage.md](data-storage.md) before public hosting.
+These are the contract acceptance requirements. Implementation tests and current limitations are recorded in [local demo verification](local-demo.md#browser-ble-integration). Direct review covered models, schema, migrations, controllers, queries, and the atomic ingestion service. No generated model-map tasks exist. The current first-seen grouping and physical controls are documented limitations; true daily history and browser commands remain separate extensions. Public deployment still requires the operational/enrollment gates in [data-storage.md](data-storage.md).

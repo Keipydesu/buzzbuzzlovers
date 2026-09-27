@@ -4,11 +4,13 @@ Status: draft, under active discussion. This sequences the proposals in [MVP.md]
 
 ## Current status and priorities
 
-PR #1 is merged. Username/password authentication and account-scoped API access are implemented locally and independently reviewed. Saved friend groups, link/code joining, and weekly rankings are implemented locally and independently reviewed; see [the competition implementation](social-competition-implementation-plan.md). Browser BLE integration remains unfinished. The merged Tiger snapshot-history and hypertable bootstrap implementation is preserved. The immediate MVP target is a local demo; production setup is deferred.
+PR #1 is merged. Username/password authentication and account-scoped API access are implemented locally and independently reviewed. Saved friend groups, link/code joining, and weekly rankings are implemented locally and independently reviewed; see [the competition implementation](social-competition-implementation-plan.md). Automatic first-use registration and ten-second firmware timing are implemented under decisions 017–018. Browser BLE transport and the upload queue are implemented; physical verification remains pending. The merged Tiger snapshot-history and hypertable bootstrap implementation is preserved. The immediate MVP target is a local demo; production setup is deferred.
 
-Current order: finish competition review, confirm hosted account/enrollment and infrastructure choices, implement isolated and authenticated storage with atomic snapshot history, then finish browser/dashboard integration and rehearse the demo. The phase sections below group workstreams rather than implying that every earlier item has landed.
+Current order: follow the [hardware integration plan](hardware-integration-plan.md), verify the actual firmware/browser setup, validate the implemented browser transport, authenticated upload queue, and live dashboard on the physical device, then rehearse the local demo. Competition and canonical/history writes already exist; public hosting remains deferred. The phase sections below group workstreams rather than implying that every earlier item has landed.
 
 Public-release blockers: authentication and verified device ownership, tenant-scoped reads/writes, secure hosting/database connections, ingestion correctness, dependency review, and agreed retention/recovery/budget. Durable browser outbox, accurate cross-midnight history, device transfers, continuous aggregates, and columnstore optimization remain deferred unless separately approved. Follow [data-storage.md](data-storage.md) for acceptance checks.
+
+The `Hardware/slouch_detector/slouch_detector.ino` source implements the documented UUIDs and binary fields. [Decision 016](decisions/016-integrate-existing-hardware.md) directs software to adapt to its current behavior. The detailed historical checklists below are not completion evidence: source exists for sensing/BLE, but physical verification is pending; browser connection controls, byte decoding, and upload synchronization are now implemented and covered by synthetic tests.
 
 ## Guiding order
 
@@ -37,7 +39,7 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 - [ ] Verify the exact board supports BLE; document sensor interface, voltage compatibility, mounting stability, and power plan
 - [ ] Implement calibration routine (upright baseline capture)
 - [ ] Decide sample rate, filtering, sensor-error handling, threshold hysteresis, and whether episode duration includes the initial persistence window
-- [ ] Implement posture classification with more than 60 seconds of continuous slouch required per episode; see [decision 006](decisions/006-one-minute-slouch-qualification.md)
+- [ ] Validate the implemented ten-second qualification/backfill and three-second reset on hardware; see [decision 017](decisions/017-ten-second-slouch-grace.md)
 - [ ] Implement episode timing (start/end, elapsed slouch duration, count)
 - [ ] Define session boundaries: what happens on BLE disconnect or device restart
 - [ ] Expose results through BLE service per the agreed contract
@@ -49,9 +51,9 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 
 - [ ] Finalize BLE data contract (protocol version, device ID, session ID, sequence number, elapsed tracked time, posture state, cumulative slouch duration, cumulative episode count)
 - [ ] Review proposed 20-byte little-endian snapshots and identity characteristic in [ble-protocol.md](ble-protocol.md); agree on state meanings and counter limits
-- [ ] Browser-side BLE connect/disconnect flow with explicit stale/disconnected states
+- [x] Browser-side BLE connect/disconnect flow with explicit stale/disconnected states (automated; physical check pending)
 - [ ] Verify notifications and reads on the actual laptop; serialize reads and discard late callbacks from an old connection
-- [ ] Duplicate/out-of-order update handling (sequence number reconciliation, not additive re-application of cumulative totals)
+- [x] Duplicate/out-of-order update handling (sequence reconciliation; Node and browser fixture tests)
 - [ ] Reconnect and resync behavior if disconnected logging is in scope
 - [ ] Agree on byte-level fixtures shared by firmware and browser tests before coding either side
 
@@ -74,12 +76,12 @@ Review [the BLE telemetry proposal](ble-protocol.md) before agreeing on the cont
 
 *Owner: TBD (proposed: claude)*
 
-A responsive Rails visual preview now exists at `/`, with sample states, a weekly chart, a goal ring, milestones, and light/dark modes. It does not implement live BLE or saved-user dashboard integration; the acceptance items below remain open.
+The public `/` introduces bbl before account creation or login; signed-in visitors see saved personal/group totals. Landing, login, and signup follow the [mobile-first UI requirements](mobile-first-interface.md) with light/dark themes. The dashboard leads with weekly competition and has a real seven-day stacked chart and compact Today totals; pairing/live readings moved to `/wearable` under [decision 019](decisions/019-separate-pairing-and-weekly-chart.md). The original daily frequency chart, goal ring, and milestones are historical previews. Browser BLE is implemented with fixture-based coverage; physical verification and the remaining unchecked acceptance items are unfinished.
 
-- [ ] Mobile-first dashboard: connection status, live posture/session state
+- [x] Mobile-first dashboard: connection status, live posture/session state (synthetic browser coverage; physical check pending)
 - [ ] Trend-first dashboard with today’s frequency bar chart; agree device time buckets/events and coverage before connecting real timeline data
-- [ ] Today's totals view (tracked duration, slouch duration, episode count)
-- [ ] Weekly history view
+- [x] Today's saved totals (tracked duration, slouch duration, episode count)
+- [x] Seven-day saved history chart, recorded-day average, and accessible data table (first-seen-date grouping)
 - [ ] Daily challenge progress/reward display
 - [ ] Empty states before any activity is recorded; any sample data clearly labeled and separated from real history
 - [ ] End-to-end demo rehearsal against the acceptance criteria in MVP.md

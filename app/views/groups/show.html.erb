@@ -1,11 +1,11 @@
-<% content_for :title, "#{@group.name} · bbl" %>
-<div class="tracker" data-controller="theme" data-theme="dark">
+<% content_for :title, "#{@group.name} · pose." %>
+<div class="tracker" data-controller="theme wearable-navigation" data-theme="dark">
   <main class="dashboard groups-page">
     <%= render "groups/header" %>
-    <div class="group-heading"><p class="eyebrow">BETTER HABITS, TOGETHER</p><h1><%= @group.name %></h1><p><%= pluralize(@competition.entries.size, "member") %> · Weekly competition</p></div>
+    <div class="group-heading"><p class="eyebrow">BETTER HABITS, TOGETHER</p><h1><%= @group.name %></h1><p><%= pluralize(@competition.entries.size, "member") %></p></div>
     <section class="panel leaderboard" aria-labelledby="leaderboard-title">
       <h2 id="leaderboard-title">This week's rankings</h2>
-      <p class="chart-caption"><%= @competition.week_start.strftime("%b %-d") %>–<%= @competition.week_end.strftime("%b %-d, %Y") %> · <%= @competition.timezone %></p>
+      <p class="chart-caption"><%= @competition.week_start.strftime("%b %-d") %>–<%= @competition.week_end.strftime("%b %-d, %Y") %></p>
       <p class="ranking-description">Lowest slouch share leads. Rankings update when you refresh.</p>
       <ol class="ranking-list">
         <% @competition.entries.each do |entry| %>
@@ -25,9 +25,17 @@
     <section class="panel create-group">
       <h2>Most improved</h2>
       <% if @competition.most_improved.any? %>
-        <p><%= @competition.most_improved.map { |entry| entry.user.username }.join(", ") %> · <%= number_with_precision(@competition.most_improved.first.improvement.to_f, precision: 2) %> percentage points less slouching than last week.</p>
-      <% else %><p>No improvement to highlight yet. Both weeks need recorded activity and a lower slouch share this week.</p><% end %>
-      <p>This compares this week's recorded activity so far with last week's. It does not affect ranking.</p>
+        <div class="improvement-highlight">
+          <strong class="improvement-name"><%= @competition.most_improved.map { |entry| entry.user.username }.join(", ") %></strong>
+          <div class="improvement-result">
+            <span class="improvement-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 7 7 4-4 7 9M15 18h6v-6" /></svg>
+              <%= number_with_precision(@competition.most_improved.first.improvement.to_f, precision: 2, strip_insignificant_zeros: true) %> pts
+            </span>
+            <span class="improvement-caption">less slouching</span>
+          </div>
+        </div>
+      <% else %><p>No improvement yet.</p><% end %>
     </section>
     <section class="panel create-group">
       <h2>Invite your friends</h2>

@@ -4,6 +4,8 @@ Date: 2026-09-26.
 
 Status: accepted product requirement; firmware implementation and hardware validation pending.
 
+Superseded by [decision 017](017-ten-second-slouch-grace.md): the operator subsequently chose a ten-second qualification with retrospective duration credit and three-second upright reset. The original decision below is retained as history.
+
 ## Context
 
 The user wants to improve a habit over time. Brief posture changes should not inflate slouch frequency.

@@ -26,8 +26,20 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
-  test "anonymous API reads and uploads are denied and browser pages require login" do
+  test "anonymous API reads and uploads are denied and other browser pages require login" do
     get root_path
+    assert_response :ok
+    assert_select "h1", text: "Notice your posture. Build better habits, together."
+    assert_select "a[href=?]", signup_path, minimum: 1
+    assert_select "a[href=?]", login_path, minimum: 1
+    assert_select "form", count: 0
+    get groups_path
+    assert_redirected_to login_path
+    get wearable_path
+    assert_redirected_to login_path
+    get details_path
+    assert_redirected_to login_path
+    get coach_path
     assert_redirected_to login_path
     [ api_v1_devices_path, api_v1_today_path, api_v1_weekly_path ].each do |path|
       get path
@@ -36,6 +48,25 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
     end
     put_snapshot(VALID_DEVICE_ID, 7)
     assert_response :unauthorized
+  end
+
+  test "signed in root shows saved dashboard and logout restores public introduction" do
+    sign_in
+    get root_path
+    assert_response :ok
+    assert_select "h2", text: "Today"
+    assert_select "a#today[href=?]", details_path
+    assert_select "#today .session-metrics", count: 0
+    assert_select ".landing-page", count: 0
+    assert_equal "no-store", response.headers["Cache-Control"]
+    get details_path
+    assert_response :ok
+    assert_select "#details .session-metrics .metric-label", count: 3
+    delete logout_path
+    get root_path
+    assert_response :ok
+    assert_select ".landing-page", count: 1
+    assert_select "#today", count: 0
   end
 
   test "other users cannot see or mutate device sessions or summary totals" do

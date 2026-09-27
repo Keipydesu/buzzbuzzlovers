@@ -1,5 +1,10 @@
 # App plan (Rails + browser)
 
+
+Current follow-up: [decision 017](decisions/017-ten-second-slouch-grace.md) replaces the one-minute rule with ten-second qualification/full-candidate credit and three-second reset. [Decision 018](decisions/018-mvp-first-connection-registration.md) replaces mandatory manual provisioning with trusted first-use registration for MVP. Existing ownership remains protected; stronger enrollment is still required for an untrusted public rollout. Historical proposals below yield to these decisions.
+
+Current integration reference (2026-09-26): [hardware integration plan](hardware-integration-plan.md), [BLE source contract](ble-protocol.md), and [current API](app-api.md). Firmware now exists under `Hardware/`; accounts, ownership, canonical sessions, and atomic accepted history are implemented in Rails. The immediate target is the local demo; the browser adapter is implemented with automated fixture coverage; physical device validation remains pending. Historical proposals below are superseded where they describe absent hardware/accounts/history or public hosting as the immediate milestone.
+
 **Status: architecture proposal; Rails persistence/API scaffold under review, hosted integration not implemented.** Scope is the app side only: the browser BLE adapter and the Rails web app. Wire-level BLE fields, UUIDs, and encoding are defined in [ble-protocol.md](ble-protocol.md) and are not repeated here except where the app-side contract depends on them. See [ROADMAP.md](ROADMAP.md) for how this fits the overall sequencing (this document is Phase 3 + Phase 4 detail).
 
 The ESP32 owns all posture classification. Nothing here recomputes posture state from raw sensor data; the app only stores and displays values the device already calculated.
@@ -23,7 +28,7 @@ app/views/dashboard/         # primary mobile-first screen
 test/                        # Rails model/request/summary tests
 ```
 
-Lead the dashboard with today’s slouch-frequency bar chart, with goals and current connection status secondary, per [decision 007](decisions/007-lead-with-habit-trends.md). Add an explicitly labeled weekly average to seven-day history. The preview timeline is synthetic: the cumulative API cannot yet provide accurate time-bucketed episodes. The connect flow can be inline; no separate onboarding or settings area is required. Keep essential buttons touch-sized, labels readable, charts paired with textual totals, and status changes understandable without relying on color.
+Lead the dashboard with today’s slouch-frequency bar chart, with goals and current connection status secondary, per [decision 007](decisions/007-lead-with-habit-trends.md). Add an explicitly labeled weekly average to seven-day history. The preview timeline is synthetic: the cumulative API cannot yet provide accurate time-bucketed episodes. Current UI supersedes this historical preview ordering: weekly competition comes first, then Today and saved weekly bars, with pairing on `/wearable`; see [decision 020](decisions/020-competition-first-uncluttered-dashboard.md). Keep essential buttons touch-sized, labels readable, charts paired with textual totals, and status changes understandable without relying on color.
 
 ## Open decisions and provisional defaults
 
@@ -65,7 +70,7 @@ posture_sessions
 
 ### Device registration
 
-The scaffold uses one server-configured demo profile. The hosted target replaces it with an authenticated account and server-derived ownership; every read, summary, and mutation must be scoped accordingly. Device identity remains an opaque identifier, not a credential. Online registration must verify a pre-provisioned binding or an agreed possession-proof flow; a plain POST of a BLE ID cannot assign ownership. See [data-storage.md](data-storage.md).
+The scaffold uses one server-configured demo profile. The hosted target replaces it with an authenticated account and server-derived ownership; every read, summary, and mutation must be scoped accordingly. Device identity remains an opaque identifier, not a credential. The trusted MVP uses first authenticated HTTP claim for unused IDs under decision 018, without possession proof. Existing owners and legacy unowned history are protected. Before untrusted public rollout, replace first-claim enrollment with a verified binding or possession-proof flow. See [data-storage.md](data-storage.md).
 
 Explicitly do **not** derive an "upright time" field from `tracked_seconds - slouch_seconds`. Label it in code, API responses, and UI copy as *device-classified non-slouch time* — the device isn't asserting clinically correct posture, only "not currently in a detected slouch episode."
 
@@ -124,7 +129,7 @@ The target is hosted Rails with Tiger Cloud and authenticated per-user storage, 
 
 Keep Bluetooth status, device posture, and saving status separate. The app can show live posture while Rails is temporarily unavailable, with a visible unsaved indicator. Follow app-api.md's one-request upload queue, cumulative snapshot coalescing, bounded retries, and preservation of terminal snapshots. The proposed queue is in memory: reloading can lose unsaved records, and reconnecting recovers only data still retained by the ESP32. Durable offline history is not promised by this app-only plan.
 
-First-seen-date grouping is the provisional calendar policy. Today and weekly summaries must say they group **sessions by first-seen date**. A session first observed late or spanning midnight cannot be split accurately with the current payload. Genuine per-day accounting requires firmware time-bucketed records and a synchronization extension. The full API defines timestamps and the frozen bucket rule.
+First-seen-date grouping is the provisional calendar policy. Today and weekly summaries still group sessions by first-seen date internally. The visible technical caption was removed at the user’s request under [decision 020](decisions/020-competition-first-uncluttered-dashboard.md). A session first observed late or spanning midnight cannot be split accurately with the current payload. Genuine per-day accounting requires firmware time-bucketed records and a synchronization extension. The full API defines timestamps and the frozen bucket rule.
 
 ## Screens / journeys
 
