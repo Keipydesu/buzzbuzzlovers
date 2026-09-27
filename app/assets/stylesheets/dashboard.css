@@ -229,6 +229,14 @@ body { margin: 0; }
 .muse-answer { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; }
 .muse-answer p { margin-top: 12px; }
 .coach-error { border-left: 3px solid var(--gold); padding: 12px; margin-bottom: 16px !important; }
+.muse-thread { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+.muse-turn { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+.muse-turn h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.muse-turn p { margin-top: 8px; }
+.muse-turn-user h2 { color: var(--gold); }
+.coach-reset-button { margin-top: 16px; }
+.coach-reset-button input { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+.coach-reset-button input:hover { color: var(--text); border-color: var(--text); }
 @media (max-width: 620px) { .competition-hero { padding: 14px; margin: 14px 0; } .competition-heading { gap: 8px; } .competition-heading .subtle-label { max-width: 85px; text-align: right; } .competition-standing { gap: 14px; margin: 14px 0; } .standing-rank { font-size: 32px; } .standing-message h3 { font-size: 14px; } .standing-message p { font-size: 11px; } .competition-actions { gap: 15px; } .competition-actions .group-link { white-space: normal; } .muse-entry { flex-wrap: wrap; } .muse-entry .group-link { margin-left: 0; } }
 
 .invite-link { overflow-wrap: anywhere; }

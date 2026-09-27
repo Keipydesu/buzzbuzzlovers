@@ -5,16 +5,18 @@ test('coach explains availability and sharing, validates, renders escaped respon
   await page.getByRole('link', { name: 'Ask Muse →' }).click();
   await expect(page.getByText("Muse isn't connected yet.")).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ask Muse', exact: true })).toBeDisabled();
-  await expect(page.getByText(/Only your question is shared with Meta Muse Spark/)).toBeVisible();
+  await expect(page.getByText(/this conversation, and a short summary of your own tracked totals/)).toBeVisible();
   fixture('coach', 'available');
   await page.reload();
-  const question = page.getByLabel('What would you like to work on?');
+  // Not getByLabel: the label switches to "Continue the conversation" once a
+  // turn exists, so the field is targeted by its stable id across the flow.
+  const question = page.locator('#question');
   await question.fill('   ');
   await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveText('Ask a question between 1 and 2,000 characters.');
   await question.fill('How can I adjust my desk?');
   await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
-  await expect(page.locator('.muse-answer')).toContainText('Try a comfortable screen distance.');
+  await expect(page.locator('.muse-turn-assistant').last()).toContainText('Try a comfortable screen distance.');
   expect(await page.evaluate(() => window.untrustedCoach)).toBeUndefined();
   await question.fill('Simulate unavailable service');
   await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
@@ -22,8 +24,14 @@ test('coach explains availability and sharing, validates, renders escaped respon
   await expect(question).toHaveValue('Simulate unavailable service');
   await question.fill('Try another question');
   await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
-  await expect(page.locator('.muse-answer')).toBeVisible();
+  await expect(page.locator('.muse-turn-assistant').last()).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.locator('.muse-turn-assistant')).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator('.muse-turn-assistant')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Start a new conversation' }).click();
+  await expect(page.locator('.muse-turn')).toHaveCount(0);
+  await expect(page.getByLabel('What would you like to work on?')).toBeVisible();
   await noOverflow(page);
 });
 

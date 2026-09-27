@@ -14,4 +14,20 @@ class CoachTest < ActionDispatch::IntegrationTest
     assert_response :service_unavailable
     assert_includes response.body, "Muse could not respond right now. Please try again later."
   end
+
+  test "renders prior conversation turns and clears them on reset" do
+    Muse::Conversation.exchange(@test_user.id, question: "Prior question") { "Prior answer" }
+
+    get coach_path
+    assert_includes response.body, "Prior question"
+    assert_includes response.body, "Prior answer"
+
+    delete coach_path
+    assert_redirected_to coach_path
+
+    get coach_path
+    assert_not_includes response.body, "Prior question"
+  ensure
+    Muse::Conversation.reset!(@test_user.id)
+  end
 end
