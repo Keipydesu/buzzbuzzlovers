@@ -20,3 +20,20 @@ The combined Rails request/service tests and four JavaScript controller tests co
 
 - [Earlier posture context and static sample](029-posture-context-and-muse-sample.md)
 - [Visual direction](004-focused-health-tracker-interface.md)
+
+## UI alignment verification — 2026-09-27
+
+Aligned the shared chat panel with the current compact, square-edged interface:
+smaller heading, rectangular prompts and message surfaces, tighter spacing, and
+expandable conversation-sharing details. The demo label remains visible. Both
+existing themes and reduced-motion support are preserved.
+
+Direct model/schema/migration review found no data-model changes necessary.
+Ruby 3.3.12 and the installed bundle were available. Four existing JavaScript
+chat tests passed. Chromium checks against the isolated `bbl_playwright_test`
+app passed at 320, 390, and 1280 CSS pixels in both themes, including overflow,
+scripted replies, reset, and disclosure expansion. No live provider or hosted
+data was used; the full Rails suite was not run for this presentation change.
+
+Reviewed screenshots: [mobile dark](../screenshots/muse-mobile-dark.png) and
+[desktop light](../screenshots/muse-desktop-light.png).
