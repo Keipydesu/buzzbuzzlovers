@@ -6,6 +6,7 @@ export default class extends Controller {
 
   connect() {
     this.messages = []
+    this.retryIntent = null
     this.busy = false
     this.greeting = this.threadTarget.querySelector?.("[data-muse-greeting]")?.outerHTML || this.threadTarget.innerHTML
     this.clearBeforeCache = () => this.reset()
@@ -24,6 +25,7 @@ export default class extends Controller {
     this.abort = null
     clearTimeout(this.delay)
     this.messages = []
+    this.retryIntent = null
     this.topic = null
     this.threadTarget.innerHTML = this.greeting
     this.inputTarget.value = ""
@@ -40,6 +42,13 @@ export default class extends Controller {
         this.errorTarget.hidden = false
       } finally { this.setBusy(false) }
     }
+  }
+
+  analyze(event) {
+    event.preventDefault()
+    if (this.busy || !this.liveValue) return
+    this.inputTarget.value = "Analyze my posture"
+    return this.send(event, "analyze")
   }
 
   suggest(event) {
@@ -78,10 +87,11 @@ export default class extends Controller {
     this.promptsTarget.querySelectorAll("button").forEach(button => { button.disabled = value })
   }
 
-  async send(event) {
+  async send(event, requestedIntent = null) {
     event.preventDefault()
     const question = this.inputTarget.value.trim()
     if (this.busy || !question || question.length > 2000) return
+    const intent = requestedIntent || (this.retryIntent?.question === question ? this.retryIntent.intent : "chat")
     const bubble = this.append("user", question)
     this.inputTarget.value = ""
     this.errorTarget.hidden = true
@@ -97,7 +107,7 @@ export default class extends Controller {
           const response = await fetch(this.urlValue, {
             method: "POST", signal: request.signal,
             headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content },
-            body: JSON.stringify({ question })
+            body: JSON.stringify({ question, intent })
           })
           if (response.redirected) throw Error("Please sign in again, then retry your message.")
           if (response.status === 429) throw Error("A little pause: please wait a minute before sending again.")
@@ -111,11 +121,14 @@ export default class extends Controller {
         answer = this.demoReply(question)
       }
       if (this.abort !== request) return
+      this.retryIntent = null
       this.messages.push({ role: "user", content: question }, { role: "assistant", content: answer })
       this.messages = this.messages.slice(-12)
       this.append("assistant", answer)
     } catch (error) {
       if (this.abort !== request) return
+      this.retryIntent = { question, intent }
+      this.promptsTarget.hidden = false
       bubble.remove()
       this.inputTarget.value = question
       this.errorTarget.textContent = error.name === "AbortError" ? "That reply took too long. Your message is ready to retry." : error.message

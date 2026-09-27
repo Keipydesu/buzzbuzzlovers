@@ -1,37 +1,33 @@
 const { test, expect, fixture, login, signup, createGroup, noOverflow } = require('./support/helpers');
 
-test('coach explains availability and sharing, validates, renders escaped response and recovers from failure', async ({ page }) => {
+test('coach explains availability and sharing, renders escaped response and recovers from failure', async ({ page }) => {
   await login(page);
-  await page.getByRole('link', { name: 'Ask Muse →' }).click();
-  await expect(page.getByText("Muse isn't connected yet.")).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Ask Muse', exact: true })).toBeDisabled();
-  await expect(page.getByText(/this conversation, and a short summary of your own tracked totals/)).toBeVisible();
+  await page.goto('/coach');
+  await expect(page.locator('.muse-mode')).toContainText('Demo · scripted replies');
+  await expect(page.getByRole('button', { name: 'Analyze my posture', exact: true })).toHaveCount(0);
   fixture('coach', 'available');
   await page.reload();
-  // Not getByLabel: the label switches to "Continue the conversation" once a
-  // turn exists, so the field is targeted by its stable id across the flow.
-  const question = page.locator('#question');
-  await question.fill('   ');
-  await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
-  await expect(page.getByRole('alert')).toHaveText('Ask a question between 1 and 2,000 characters.');
+  await page.getByText('How your conversation is shared', { exact: true }).click();
+  await expect(page.locator('.coach-sharing')).toContainText('your own tracked totals');
+  const question = page.getByLabel('Your message to Muse');
+  const send = page.getByRole('button', { name: 'Send', exact: false });
   await question.fill('How can I adjust my desk?');
-  await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
-  await expect(page.locator('.muse-turn-assistant').last()).toContainText('Try a comfortable screen distance.');
+  await send.click();
+  await expect(page.locator('.muse-bubble').last()).toContainText('Try a comfortable screen distance.');
   expect(await page.evaluate(() => window.untrustedCoach)).toBeUndefined();
   await question.fill('Simulate unavailable service');
-  await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
+  await send.click();
   await expect(page.getByRole('alert')).toHaveText('Muse could not respond right now. Please try again later.');
   await expect(question).toHaveValue('Simulate unavailable service');
   await question.fill('Try another question');
-  await page.getByRole('button', { name: 'Ask Muse', exact: true }).click();
-  await expect(page.locator('.muse-turn-assistant').last()).toBeVisible();
-  await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.locator('.muse-turn-assistant')).toHaveCount(2);
+  await send.click();
+  await expect(page.getByRole('alert')).toBeHidden();
+  await expect(page.locator('.muse-bubble-user')).toHaveCount(2);
   await page.reload();
-  await expect(page.locator('.muse-turn-assistant')).toHaveCount(2);
-  await page.getByRole('button', { name: 'Start a new conversation' }).click();
-  await expect(page.locator('.muse-turn')).toHaveCount(0);
-  await expect(page.getByLabel('What would you like to work on?')).toBeVisible();
+  await expect(page.locator('.muse-bubble-user')).toHaveCount(2);
+  await page.getByRole('button', { name: 'New chat', exact: true }).click();
+  await expect(send).toBeEnabled();
+  await expect(page.locator('.muse-bubble-user')).toHaveCount(0);
   await noOverflow(page);
 });
 

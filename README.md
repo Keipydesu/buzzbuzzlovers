@@ -27,7 +27,7 @@ Account implementation and operator setup: [MVP authentication](docs/authenticat
 
 The app now has username/password accounts, saved friend groups, invite links/codes, weekly slouch-share rankings and a separate most-improved highlight. These changes are local and independently reviewed; see [implementation and limits](docs/social-competition-implementation-plan.md). Rankings refresh from saved data, use Monday–Sunday in the configured app timezone, and trust participants. No-data users are unranked.
 
-The dashboard leads with weekly competition, followed by compact personal totals and a seven-day bar chart. Its single header keeps pairing, theme, and account controls together. Pairing and live readings are on `/wearable`; keep that page open while tracking and use its dashboard link to view history in another tab. See [the dashboard decisions](docs/decisions/019-separate-pairing-and-weekly-chart.md) and [latest simplification](docs/decisions/020-competition-first-uncluttered-dashboard.md). The old synthetic half-hour chart is no longer shown as live data. Browser BLE transport, live state, and queued uploads are implemented; physical wearable verification remains pending. Tiger DB integration is preserved, including accepted snapshot history. The MVP will be demonstrated locally; deployment is deferred. Muse at `/coach` remains development/test-only and needs local API credentials; no live Muse response has been verified. Historical UI descriptions below describe earlier previews.
+The dashboard leads with weekly competition, followed by compact personal totals and a seven-day bar chart. Its single header keeps pairing, theme, and account controls together. Pairing and live readings are on `/wearable`; keep that page open while tracking and use its dashboard link to view history in another tab. See [the dashboard decisions](docs/decisions/019-separate-pairing-and-weekly-chart.md) and [latest simplification](docs/decisions/020-competition-first-uncluttered-dashboard.md). The old synthetic half-hour chart is no longer shown as live data. Browser BLE transport, live state, and queued uploads are implemented; physical wearable verification remains pending. Tiger DB integration is preserved, including accepted snapshot history. The MVP will be demonstrated locally; deployment is deferred. Muse at `/coach` remains development/test-only and needs local API credentials; live Muse was smoke-tested with synthetic totals and conversation only; no personal or hosted records were sent. Historical UI descriptions below describe earlier previews.
 
 **Status: Rails scaffold under review; dashboard preview available; hosted integration in progress.** The current PR contains persistence/API code. The authenticated dashboard at `/` displays saved personal and group totals. A `posture_snapshots` hypertable migration and model exist and are verified against a real Tiger Cloud instance, and accounts, authentication, and automatic first-use device registration are implemented. The browser BLE adapter and live dashboard are implemented with synthetic automated coverage; physical device verification is pending. The earlier JavaScript prototype has been discarded.
 
@@ -215,8 +215,16 @@ answers with keyword-based scripted examples in your browser. No API requests ar
 made by that demo, and its messages clear on reload. This is separate from the
 historical standalone posture simulator in `demo/`; run the Rails app at the
 repository root for Muse. Setup, request payloads, and fallback behavior have
-automated coverage; a live provider response still requires your key.
+automated coverage. Synthetic live responses were also checked for analysis, follow-up, and rejection of unsupported hourly claims; using live chat requires your authorized key.
 
 The dashboard and public landing page include sourced posture-awareness guidance and a continuing Muse chat below the main content. Both retain the existing navy/gold light and dark themes. Signed-in users with Muse configured get live replies using server-owned recent conversation and a summary of their own tracked totals, as disclosed in the chat. Otherwise, a clearly labeled interactive demo uses local scripted replies. Live context stays in local server memory for up to 30 minutes of inactivity; New chat clears it. Demo chat clears on navigation/reload. Message/typing animations respect reduced-motion settings. See [the chat decision](docs/decisions/030-continuing-muse-chat.md).
+
+Signed-in users with live Muse can select **Analyze my posture** to start with
+recorded-time evidence and one contextual question, then discuss one small
+experiment. The server computes weighted slouch share and recorded-day coverage;
+conversation context survives reload and resets/expires with the existing chat.
+Errors keep the analysis ready to retry. No reminder is scheduled. Hour-of-day
+patterns require future device-timed history; see
+[decision 035](docs/decisions/035-conversational-posture-analysis.md).
 
 The earlier [standalone simulated demo](docs/DEMO.md) remains available in `demo/`; it is separate from the current authenticated app and its hardware integration.
