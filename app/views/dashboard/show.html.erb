@@ -26,6 +26,6 @@
       <%= render "weekly" %>
       <%= link_to "View week details", details_path(period: "week"), class: "weekly-details-link" %>
     </div>
-    <section class="panel muse-entry"><h2>Desk setup &amp; habits</h2><%= link_to "Ask Muse →", coach_path, class: "group-link" %></section>
+    <%= render "dashboard/posture_context" %>
   </main>
 </div>

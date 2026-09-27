@@ -270,3 +270,53 @@ body { margin: 0; }
 .tracker .muse-submit { display: flex; align-items: center; justify-content: space-between; width: 100%; border-radius: 0; min-height: 48px; }
 .tracker .muse-submit:disabled { opacity: .5; cursor: not-allowed; }
 .tracker .coach-footnote { font-size: 11px; }
+
+/* Educational content follows saved metrics; reuse both themes' existing tokens. */
+.tracker .posture-context, .tracker .muse-sample { margin: 24px 0; }
+.tracker .posture-intro, .tracker .muse-sample-intro { margin-top: 12px; color: var(--muted); max-width: 78ch; font-size: 14px; line-height: 1.7; }
+.tracker .posture-tips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
+.tracker .posture-tips h3 { color: var(--text); font-size: 14px; font-weight: 600; }
+.tracker .posture-tips p { color: var(--muted); font-size: 13px; line-height: 1.7; margin-top: 8px; }
+.tracker .posture-sources { color: var(--muted); font-size: 12px; margin-top: 22px; line-height: 1.8; }
+.tracker .posture-sources a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+.tracker .muse-messages { list-style: none; padding: 0; margin: 24px 0; display: flex; flex-direction: column; gap: 16px; }
+.tracker .muse-message { max-width: 82%; padding: 18px 20px; background: var(--surface-raised); border-left: 2px solid var(--gold); }
+.tracker .muse-message-user { align-self: flex-end; background: var(--bg); border: 1px solid var(--border); }
+.tracker .muse-speaker { display: block; color: var(--accent-text); font-size: 11px; font-weight: 600; letter-spacing: .6px; margin-bottom: 8px; }
+.tracker .muse-message p { font-size: 14px; line-height: 1.7; }
+.tracker .muse-sample-link { display: inline-flex; min-height: 44px; align-items: center; margin-left: 0; }
+@media (max-width: 620px) {
+  .tracker .posture-context, .tracker .muse-sample { padding: 18px 16px; margin: 18px 0; }
+  .tracker .posture-tips { grid-template-columns: 1fr; gap: 18px; }
+  .tracker .muse-message { max-width: 94%; padding: 14px; }
+  .tracker .muse-message p, .tracker .posture-intro, .tracker .muse-sample-intro { font-size: 13px; }
+}
+
+/* Muse stays within the existing navy/gold theme in both color modes. */
+.tracker .muse-chat { margin: 24px 0 40px; }
+.tracker .muse-chat-heading { display: flex; align-items: center; gap: 14px; }
+.tracker .muse-orb { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--gold); color: var(--accent-text); background: var(--surface-raised); border-radius: 50%; font-size: 25px; animation: muse-orbit 5s ease-in-out infinite; }
+.tracker .muse-mode { color: var(--muted); font-size: 12px; margin-top: 16px; }
+.tracker .muse-thread { display: flex; flex-direction: column; gap: 16px; max-height: 460px; overflow-y: auto; overscroll-behavior: contain; padding: 24px 4px 16px; scrollbar-color: var(--border) transparent; }
+.tracker .muse-bubble { align-self: flex-start; max-width: 84%; padding: 16px 20px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 2px 16px 16px 16px; animation: muse-enter .3s ease-out both; }
+.tracker .muse-bubble-user { align-self: flex-end; background: var(--bg); border-color: var(--gold); border-radius: 16px 2px 16px 16px; }
+.tracker .muse-bubble p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.7; }
+.tracker .muse-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tracker .muse-prompts button { border: 1px solid var(--border); background: var(--surface); color: var(--accent-text); padding: 10px 14px; border-radius: 24px; min-height: 44px; font-size: 12px; transition: transform .2s, border-color .2s; }
+.tracker .muse-prompts button:hover { transform: translateY(-2px); border-color: var(--gold); }
+.tracker .muse-composer { display: flex; align-items: flex-end; gap: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; transition: border-color .2s, box-shadow .2s; }
+.tracker .muse-composer:focus-within { border-color: var(--gold); box-shadow: 0 0 0 2px var(--surface-raised); }
+.tracker .muse-composer textarea { flex: 1; min-width: 0; resize: vertical; max-height: 180px; background: transparent; color: var(--text); border: 0; font: inherit; padding: 10px; line-height: 1.5; }
+.tracker .muse-composer button { border: 0; min-height: 44px; cursor: pointer; transition: transform .2s; }
+.tracker .muse-composer button:hover:not(:disabled) { transform: translateY(-2px); }
+.tracker .muse-composer button:disabled { opacity: .5; cursor: wait; }
+.tracker .muse-typing { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; padding: 4px 4px 18px; }
+.tracker .muse-typing i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); margin: 0 2px; animation: muse-dot 1s ease-in-out infinite; }
+.tracker .muse-typing i:nth-child(2) { animation-delay: .15s; }
+.tracker .muse-typing i:nth-child(3) { animation-delay: .3s; }
+.tracker .muse-chat [hidden] { display: none !important; }
+@keyframes muse-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes muse-dot { 0%, 70%, 100% { transform: translateY(0); opacity: .4; } 35% { transform: translateY(-4px); opacity: 1; } }
+@keyframes muse-orbit { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@media (max-width: 620px) { .tracker .muse-chat { padding: 18px 14px; } .tracker .muse-chat-heading h2 { font-size: 16px; } .tracker .muse-orb { width: 36px; height: 36px; flex-shrink: 0; } .tracker .muse-bubble { max-width: 94%; padding: 14px; } .tracker .muse-bubble p { font-size: 13px; } .tracker .muse-composer { gap: 4px; padding: 6px; } .tracker .muse-composer textarea { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .tracker .muse-chat *, .tracker .muse-chat *::before, .tracker .muse-chat *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

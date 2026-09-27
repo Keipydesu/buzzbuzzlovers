@@ -170,3 +170,9 @@ requires flashing the updated wearable firmware for its early-warning and recove
 
 [Software calibration](docs/decisions/028-software-calibration-control.md) also
 requires the updated firmware; BOOT remains available on older wearables.
+
+## Posture context and Muse sample
+
+The dashboard and public landing page include sourced posture-awareness guidance and a continuing Muse chat below the main content. Both retain the existing navy/gold light and dark themes. Signed-in users with Muse configured get live replies using server-owned recent conversation and a summary of their own tracked totals, as disclosed in the chat. Otherwise, a clearly labeled interactive demo uses local scripted replies. Live context stays in local server memory for up to 30 minutes of inactivity; New chat clears it. Demo chat clears on navigation/reload. Message/typing animations respect reduced-motion settings. See [the chat decision](docs/decisions/030-continuing-muse-chat.md).
+
+The earlier [standalone simulated demo](docs/DEMO.md) remains available in `demo/`; it is separate from the current authenticated app and its hardware integration.

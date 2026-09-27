@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+bundle install
+bin/rails db:prepare
+printf '\nReady: bin/rails server -b 127.0.0.1 -p 3100\n'
