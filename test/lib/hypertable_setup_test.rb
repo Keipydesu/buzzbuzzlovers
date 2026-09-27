@@ -39,7 +39,7 @@ class HypertableSetupTest < Minitest::Test
       unless timescaledb_available?
 
     with_scratch_schema do |scratch_url, schema_name|
-      env = ENV.to_h.merge("DATABASE_URL" => scratch_url, "RAILS_ENV" => "development")
+      env = ENV.to_h.merge("DATABASE_URL" => scratch_url, "RAILS_ENV" => "development", "POSE_DEMO_SEED" => "0")
       success = system(env, "bin/rails", "db:prepare", chdir: Rails.root.to_s, out: File::NULL, err: File::NULL)
       assert success, "bin/rails db:prepare (against the scratch schema) exited non-zero"
 
