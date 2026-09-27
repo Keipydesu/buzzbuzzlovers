@@ -16,8 +16,7 @@ class CoachTest < ActionDispatch::IntegrationTest
   end
 
   test "renders prior conversation turns and clears them on reset" do
-    Muse::Conversation.append!(@test_user.id, role: "user", content: "Prior question")
-    Muse::Conversation.append!(@test_user.id, role: "assistant", content: "Prior answer")
+    Muse::Conversation.exchange(@test_user.id, question: "Prior question") { "Prior answer" }
 
     get coach_path
     assert_includes response.body, "Prior question"

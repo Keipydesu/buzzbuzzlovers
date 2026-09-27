@@ -19,7 +19,7 @@
       <%= form_with url: coach_path, method: :post, data: { turbo: false } do |form| %>
         <%= form.label :question, @history.present? ? "Continue the conversation" : "What would you like to work on?" %>
         <%= form.text_area :question, value: @question, required: true, maxlength: 2000, rows: 5, placeholder: "I keep leaning toward my laptop. What could I change about my desk setup?" %>
-        <p class="coach-sharing">Your question, this conversation, and a short summary of your own tracked totals (today and the last 7 days) are sent to Meta Muse Spark. Your group data, images, and raw sensor data are not included.</p>
+        <p class="coach-sharing">Your question, this conversation, and a short summary of your own tracked totals (today and the last 7 days) are sent to Meta Muse Spark. Sessions are grouped by first-seen date, include saved partial sessions, and cannot split activity across midnight. Your group data, images, and raw sensor data are not included.</p>
         <% unless Muse::Coach.configured? %><p class="coach-availability">Muse isn't connected yet.</p><% end %>
         <%= form.submit "Ask Muse", class: "group-create-button", disabled: !Muse::Coach.configured?, data: { disable_with: "Asking Muse…" } %>
       <% end %>

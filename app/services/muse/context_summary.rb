@@ -14,7 +14,8 @@ module Muse
 
       <<~TEXT
         Background only, not asked by the user: their own tracked posture totals from their wearable, self-reported and not clinically verified. Use only if relevant to their question; do not recite the numbers back unprompted or diagnose from them.
-        Today: #{format_minutes(today_summary[:tracked_seconds])} tracked, #{format_minutes(today_summary[:slouch_seconds])} in a detected slouch, #{today_summary[:episode_count]} slouch episode(s).
+        Sessions are grouped by first-seen date in #{timezone}, not by when each minute of activity occurred. Cross-midnight sessions are not split. Totals include saved partial/incomplete sessions and exclude unsaved or unobserved activity; no recorded time does not establish no activity.
+        Today (#{today}): #{format_minutes(today_summary[:tracked_seconds])} tracked, #{format_minutes(today_summary[:slouch_seconds])} in a detected slouch, #{today_summary[:episode_count]} slouch episode(s).
         Last 7 days: #{format_minutes(weekly_tracked)} tracked, #{format_minutes(weekly_slouch)} in a detected slouch, #{weekly_episodes} slouch episode(s).
       TEXT
     end

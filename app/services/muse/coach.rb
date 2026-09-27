@@ -38,9 +38,24 @@ module Muse
     def call(question, user: nil)
       raise Unavailable, "Muse is not connected yet." unless self.class.configured?
 
-      history = user ? Conversation.for(user.id) : []
-      context = user ? ContextSummary.call(user) : nil
+      if user
+        Conversation.exchange(user.id, question: question) do |history|
+          request_answer(question, history: history, context: ContextSummary.call(user))
+        end
+      else
+        request_answer(question, history: [], context: nil)
+      end
+    rescue Conversation::Changed
+      raise Unavailable, "The conversation was reset or expired. Please ask again."
+    end
 
+    def self.reset!(user)
+      Conversation.reset!(user.id) if user
+    end
+
+    private
+
+    def request_answer(question, history:, context:)
       messages = [ { role: "developer", content: INSTRUCTIONS } ]
       messages << { role: "developer", content: context } if context.present?
       messages.concat(history)
@@ -63,18 +78,9 @@ module Muse
       answer = payload.dig("choices", 0, "message", "content")
       raise Unavailable, "Muse could not finish an answer. Please try again." unless answer.is_a?(String) && !answer.strip.empty?
 
-      if user
-        Conversation.append!(user.id, role: "user", content: question)
-        Conversation.append!(user.id, role: "assistant", content: answer)
-      end
-
       answer
     rescue JSON::ParserError, TypeError, NoMethodError, IOError, SocketError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError
       raise Unavailable, "Muse could not respond right now. Please try again later."
-    end
-
-    def self.reset!(user)
-      Conversation.reset!(user.id) if user
     end
   end
 end
