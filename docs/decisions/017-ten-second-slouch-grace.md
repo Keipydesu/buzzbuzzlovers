@@ -2,7 +2,7 @@
 
 Date: 2026-09-26.
 
-Status: accepted operator requirement; supersedes decision 006 and the timing-preservation portion of decision 016.
+Status: accepted operator requirement; supersedes decision 006 and the timing-preservation portion of decision 016. The shared state timing is superseded by [decision 032](032-live-slouch-state.md): `state` now reports live posture, while the LED, warning and counters keep this timer.
 
 ## Context
 
@@ -20,6 +20,7 @@ The former >60-second episode rule is superseded. `upright` telemetry includes a
 
 ## Related documents
 
+- [Live slouch state](032-live-slouch-state.md)
 - [Superseded episode rule](006-one-minute-slouch-qualification.md)
 - [Existing hardware baseline](016-integrate-existing-hardware.md)
 - [Device-side classification](001-device-side-posture-classification.md)
