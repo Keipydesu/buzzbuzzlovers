@@ -279,9 +279,9 @@ void updateCalibration(unsigned long now, bool ok) {
   baseline = calFirst + calSum / calCount;
   setState(STATE_UPRIGHT);
   Serial.printf("Upright baseline: %.2f deg (%d samples)\n", baseline, calCount);
-  Serial.printf("Slouch = below %.2f deg. Qualifies after %lu s, clears after %lu s upright. "
+  Serial.printf("Slouch = pitch offset above +%.2f deg from upright. Qualifies after %lu s, clears after %lu s upright. "
                 "Press BOOT anytime to recalibrate.\n",
-                baseline - THRESHOLD_DEG, (unsigned long)PostureTiming::SLOUCH_MS / 1000,
+                THRESHOLD_DEG, (unsigned long)PostureTiming::SLOUCH_MS / 1000,
                 (unsigned long)PostureTiming::RECOVER_MS / 1000);
 }
 
@@ -294,7 +294,8 @@ void classify(unsigned long now, bool ok) {
   }
 
   float z = readPitch();
-  float diff = angleDiff(z, baseline);   // negative = leaning forward
+  // The reversed mounting makes forward lean increase the sensor pitch.
+  float diff = -angleDiff(z, baseline);  // normalize: negative = leaning forward
 
   const uint8_t previousPhase = postureTiming.warningPhase();
   const PostureTiming::Update timing = postureTiming.update(now, diff < -THRESHOLD_DEG);
