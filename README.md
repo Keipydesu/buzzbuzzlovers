@@ -121,6 +121,11 @@ The hosted integration remains partial; these commands prepare local development
 
 ### Tiger Cloud hypertable (posture_snapshots)
 
+Use `bin/tiger-storage status` to check the configured Tiger service without
+writing data. For verified TLS setup, a synthetic compression probe, and the
+explicit seven-day snapshot columnstore policy, see
+[Tiger verification and compression](docs/tiger-columnstore.md).
+
 Copy `.env.example` to `.env` and fill in `TIGER_DATABASE_URL` (never commit `.env`; see [dependency safety](docs/dependency-safety.md) — no new gem was added for this, `config/boot.rb` has a small inline loader). Normal local commands above are **unaffected** and keep using local PostgreSQL; Tiger Cloud requires explicitly opting in per command:
 
 ```sh

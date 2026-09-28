@@ -73,6 +73,11 @@ The profile timezone comes from the authenticated account; a session freezes it 
 
 ## History volume and lifecycle
 
+The user has now requested snapshot compression. [Decision 032](decisions/032-tiger-snapshot-columnstore.md)
+advances this previously deferred work through explicit operator tooling; see
+[verification and rollout](tiger-columnstore.md). This does not enable deletion,
+change session storage, or establish that the hosted policy has been activated.
+
 For sizing, assume at most one normal accepted upload per second while tracking, plus terminal uploads. Eight connected hours yields about 28,800 history rows per wearer per day (100 wearers: about 2.88 million), before terminal events and any replay bursts. Measure actual coalescing, bytes per row plus indexes, active users, and connection usage before selecting a tier or claiming savings.
 
 Choose snapshot retention separately from session-summary retention and account deletion. Disable automatic deletion until the team agrees a duration and restore behavior is tested. If retaining all accepted revisions is too costly, revise the capture cadence explicitly and label the history as sampled; do not silently drop unsaved terminal data.

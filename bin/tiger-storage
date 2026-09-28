@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+require_relative "../config/boot"
+require_relative "../lib/tiger_storage"
+
+command = ARGV.shift || "status"
+abort "Usage: bin/tiger-storage [status|verify-columnstore|enable-columnstore]" unless ARGV.empty? && %w[status verify-columnstore enable-columnstore].include?(command)
+
+begin
+  connection = TigerStorage.connect(read_only: command == "status")
+  inspector = TigerStorage::Inspector.new(connection)
+  result = case command
+  when "status" then inspector.status
+  when "verify-columnstore" then inspector.verify!
+  when "enable-columnstore" then inspector.enable!
+  end
+  puts JSON.pretty_generate(result)
+rescue TigerStorage::Error => error
+  warn error.message
+  exit 1
+rescue PG::Error
+  warn "Tiger operation failed. Check connectivity, credentials, trusted CA (TIGER_SSLROOTCERT), permissions, and schema. Connection details suppressed."
+  exit 1
+ensure
+  connection&.close
+end
